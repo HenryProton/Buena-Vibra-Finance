@@ -133,9 +133,13 @@ function LoanCard({ loan, payments, userId, onChanged }: { loan: any; payments: 
 
       {loan.status === "activo" && (
         <>
-          <div className="grid grid-cols-2 gap-2 text-sm border-t border-border pt-2">
+          <div className="grid grid-cols-3 gap-2 text-sm border-t border-border pt-2">
             <div><p className="text-muted-foreground text-xs">Capital pendiente</p><p className="font-semibold">{formatUSD(capActual)}</p></div>
             <div><p className="text-muted-foreground text-xs">Intereses acumulados</p><p className="font-semibold text-primary">{formatUSD(interesGen)}</p></div>
+            <div><p className="text-muted-foreground text-xs">Deuda actual</p><p className="font-bold">{formatUSD(capActual + interesGen)}</p></div>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Abonado: capital {formatUSD(paidCap)} · intereses {formatUSD(paidInt)}
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button size="sm" variant="outline" className="w-full">Reportar abono</Button></DialogTrigger>
