@@ -50,6 +50,20 @@ export function SocioPrestamos() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const loans = data?.loans ?? [];
+  const payments = data?.payments ?? [];
+  const activos = loans.filter((l) => l.status === "activo");
+  let totalDeuda = 0;
+  activos.forEach((l) => {
+    const mine = payments.filter((p) => p.loan_id === l.id && p.status === "confirmado");
+    const paidCap = mine.reduce((a, p) => a + Number(p.amount_capital), 0);
+    const paidInt = mine.reduce((a, p) => a + Number(p.amount_interest), 0);
+    const cap = Math.max(0, Number(l.principal) - paidCap);
+    const dias = daysBetween(l.disbursed_at ?? l.approved_at ?? l.created_at);
+    const intGen = Math.max(0, Number(l.principal) * Number(l.daily_rate) * dias - paidInt);
+    totalDeuda += cap + intGen;
+  });
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -63,16 +77,21 @@ export function SocioPrestamos() {
         </Dialog>
       </div>
 
+      <Card className="p-4 space-y-1">
+        <p className="text-xs text-muted-foreground">Deuda total actual ({activos.length} préstamo{activos.length === 1 ? "" : "s"} activo{activos.length === 1 ? "" : "s"})</p>
+        <p className="text-2xl font-bold">{formatUSD(totalDeuda)}</p>
+      </Card>
+
       <Card className="p-3 text-xs text-muted-foreground">
         Máximo autorizado: <strong>{formatUSD(maxLoan)}</strong> (10× tu aporte mensual)
       </Card>
 
-      {(data?.loans ?? []).length === 0 && (
+      {loans.length === 0 && (
         <Card className="p-6 text-center text-sm text-muted-foreground">Aún no tienes préstamos.</Card>
       )}
 
-      {(data?.loans ?? []).map((l) => (
-        <LoanCard key={l.id} loan={l} payments={data?.payments ?? []} userId={uid} onChanged={() => qc.invalidateQueries({ queryKey: ["mis-prestamos", uid] })} />
+      {loans.map((l) => (
+        <LoanCard key={l.id} loan={l} payments={payments} userId={uid} onChanged={() => qc.invalidateQueries({ queryKey: ["mis-prestamos", uid] })} />
       ))}
     </div>
   );
@@ -114,9 +133,13 @@ function LoanCard({ loan, payments, userId, onChanged }: { loan: any; payments: 
 
       {loan.status === "activo" && (
         <>
-          <div className="grid grid-cols-2 gap-2 text-sm border-t border-border pt-2">
+          <div className="grid grid-cols-3 gap-2 text-sm border-t border-border pt-2">
             <div><p className="text-muted-foreground text-xs">Capital pendiente</p><p className="font-semibold">{formatUSD(capActual)}</p></div>
             <div><p className="text-muted-foreground text-xs">Intereses acumulados</p><p className="font-semibold text-primary">{formatUSD(interesGen)}</p></div>
+            <div><p className="text-muted-foreground text-xs">Deuda actual</p><p className="font-bold">{formatUSD(capActual + interesGen)}</p></div>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Abonado: capital {formatUSD(paidCap)} · intereses {formatUSD(paidInt)}
           </div>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button size="sm" variant="outline" className="w-full">Reportar abono</Button></DialogTrigger>

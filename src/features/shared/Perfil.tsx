@@ -2,12 +2,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Sun, Moon, MonitorSmartphone, LogOut } from "lucide-react";
+import { SocioAportes } from "@/features/socio/SocioAportes";
+import { SocioPrestamos } from "@/features/socio/SocioPrestamos";
 
 export function Perfil() {
   const { profile, refresh, isAdmin } = useAuth();
@@ -56,6 +59,27 @@ export function Perfil() {
         <p className="text-xs text-muted-foreground">Rol: {isAdmin ? "Administrador" : "Socio"} · {profile?.num_acciones} acción(es)</p>
         <Button variant="outline" className="w-full" onClick={logout}><LogOut className="h-4 w-4 mr-2" />Cerrar sesión</Button>
       </Card>
+
+      {isAdmin && (
+        <Card className="p-4 space-y-3">
+          <div>
+            <h3 className="font-semibold">Mi actividad como socio</h3>
+            <p className="text-xs text-muted-foreground">Tus propios aportes y préstamos.</p>
+          </div>
+          <Tabs defaultValue="aportes">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="aportes">Mis aportes</TabsTrigger>
+              <TabsTrigger value="prestamos">Mis préstamos</TabsTrigger>
+            </TabsList>
+            <TabsContent value="aportes" className="mt-3">
+              <SocioAportes />
+            </TabsContent>
+            <TabsContent value="prestamos" className="mt-3">
+              <SocioPrestamos />
+            </TabsContent>
+          </Tabs>
+        </Card>
+      )}
     </div>
   );
 }

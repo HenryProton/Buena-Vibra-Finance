@@ -50,6 +50,25 @@ export function SocioAportes() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const now = new Date();
+  const yr = now.getFullYear();
+  const curMonth = now.getMonth() + 1;
+  const byMonth = new Map<number, (typeof aportes)[number]>();
+  aportes.filter((a) => a.year === yr).forEach((a) => byMonth.set(a.month, a));
+  const calendar = Array.from({ length: 12 }, (_, i) => {
+    const m = i + 1;
+    const a = byMonth.get(m);
+    const isFuture = m > curMonth;
+    const status: "confirmado" | "reportado" | "pendiente" | "futuro" = a
+      ? (a.status as "confirmado" | "reportado")
+      : isFuture
+      ? "futuro"
+      : "pendiente";
+    return { month: m, status };
+  });
+  const pagados = calendar.filter((c) => c.status === "confirmado").length;
+  const pendientes = calendar.filter((c) => c.status === "pendiente").length;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -65,11 +84,45 @@ export function SocioAportes() {
         </Dialog>
       </div>
 
-      {aportes.length === 0 && (
-        <Card className="p-6 text-center text-sm text-muted-foreground">Aún no hay aportes registrados.</Card>
-      )}
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="p-3">
+          <p className="text-xs text-muted-foreground">Pagados {yr}</p>
+          <p className="text-2xl font-bold text-primary">{pagados}</p>
+        </Card>
+        <Card className="p-3">
+          <p className="text-xs text-muted-foreground">Faltantes por pagar</p>
+          <p className="text-2xl font-bold text-destructive">{pendientes}</p>
+        </Card>
+      </div>
+
+      <Card className="p-4 space-y-3">
+        <h3 className="font-semibold text-sm">Calendario {yr}</h3>
+        <div className="grid grid-cols-3 gap-2">
+          {calendar.map((c) => (
+            <div
+              key={c.month}
+              className={`rounded-md border p-2 text-center text-xs ${
+                c.status === "confirmado"
+                  ? "border-primary/40 bg-primary/10"
+                  : c.status === "reportado"
+                  ? "border-amber-500/40 bg-amber-500/10"
+                  : c.status === "pendiente"
+                  ? "border-destructive/40 bg-destructive/10"
+                  : "border-border bg-muted/30 text-muted-foreground"
+              }`}
+            >
+              <p className="font-semibold">{MONTHS_ES[c.month - 1].slice(0, 3)}</p>
+              <p className="mt-0.5 capitalize">{c.status === "futuro" ? "—" : c.status}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
 
       <div className="space-y-2">
+        <h3 className="font-semibold text-sm">Historial</h3>
+        {aportes.length === 0 && (
+          <Card className="p-6 text-center text-sm text-muted-foreground">Aún no hay aportes registrados.</Card>
+        )}
         {aportes.map((a) => (
           <Card key={a.id} className="p-4 flex items-center justify-between">
             <div>
