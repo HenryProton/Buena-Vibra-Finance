@@ -2,12 +2,15 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
 import { Sun, Moon, MonitorSmartphone, LogOut } from "lucide-react";
+import { SocioAportes } from "@/features/socio/SocioAportes";
+import { SocioPrestamos } from "@/features/socio/SocioPrestamos";
 
 export function Perfil() {
   const { profile, refresh, isAdmin } = useAuth();
