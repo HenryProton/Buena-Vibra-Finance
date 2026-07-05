@@ -59,6 +59,27 @@ export function Perfil() {
         <p className="text-xs text-muted-foreground">Rol: {isAdmin ? "Administrador" : "Socio"} · {profile?.num_acciones} acción(es)</p>
         <Button variant="outline" className="w-full" onClick={logout}><LogOut className="h-4 w-4 mr-2" />Cerrar sesión</Button>
       </Card>
+
+      {isAdmin && (
+        <Card className="p-4 space-y-3">
+          <div>
+            <h3 className="font-semibold">Mi actividad como socio</h3>
+            <p className="text-xs text-muted-foreground">Tus propios aportes y préstamos.</p>
+          </div>
+          <Tabs defaultValue="aportes">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="aportes">Mis aportes</TabsTrigger>
+              <TabsTrigger value="prestamos">Mis préstamos</TabsTrigger>
+            </TabsList>
+            <TabsContent value="aportes" className="mt-3">
+              <SocioAportes />
+            </TabsContent>
+            <TabsContent value="prestamos" className="mt-3">
+              <SocioPrestamos />
+            </TabsContent>
+          </Tabs>
+        </Card>
+      )}
     </div>
   );
 }
