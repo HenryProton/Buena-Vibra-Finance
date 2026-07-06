@@ -14,10 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      caja_settings: {
+        Row: {
+          aporte_mensual: number
+          fecha_fin: string
+          fecha_inicio: string
+          id: boolean
+          normas: string
+          updated_at: string
+        }
+        Insert: {
+          aporte_mensual?: number
+          fecha_fin?: string
+          fecha_inicio?: string
+          id?: boolean
+          normas?: string
+          updated_at?: string
+        }
+        Update: {
+          aporte_mensual?: number
+          fecha_fin?: string
+          fecha_inicio?: string
+          id?: boolean
+          normas?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      channels: {
+        Row: {
+          activo: boolean
+          created_at: string
+          id: string
+          nombre: string
+          orden: number
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          nombre: string
+          orden?: number
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          id?: string
+          nombre?: string
+          orden?: number
+        }
+        Relationships: []
+      }
       loan_payments: {
         Row: {
           amount_capital: number
           amount_interest: number
+          channel_id: string | null
           confirmed_at: string | null
           confirmed_by: string | null
           created_at: string
@@ -32,6 +84,7 @@ export type Database = {
         Insert: {
           amount_capital?: number
           amount_interest?: number
+          channel_id?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
@@ -46,6 +99,7 @@ export type Database = {
         Update: {
           amount_capital?: number
           amount_interest?: number
+          channel_id?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
@@ -58,6 +112,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "loan_payments_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "loan_payments_loan_id_fkey"
             columns: ["loan_id"]
@@ -74,9 +135,12 @@ export type Database = {
           created_at: string
           daily_rate: number
           disbursed_at: string | null
+          disbursement_channel_id: string | null
           id: string
           note: string | null
           principal: number
+          rate_type: Database["public"]["Enums"]["loan_rate_type"]
+          rate_value: number
           requested_at: string
           status: Database["public"]["Enums"]["loan_status"]
           user_id: string
@@ -87,9 +151,12 @@ export type Database = {
           created_at?: string
           daily_rate?: number
           disbursed_at?: string | null
+          disbursement_channel_id?: string | null
           id?: string
           note?: string | null
           principal: number
+          rate_type?: Database["public"]["Enums"]["loan_rate_type"]
+          rate_value?: number
           requested_at?: string
           status?: Database["public"]["Enums"]["loan_status"]
           user_id: string
@@ -100,18 +167,30 @@ export type Database = {
           created_at?: string
           daily_rate?: number
           disbursed_at?: string | null
+          disbursement_channel_id?: string | null
           id?: string
           note?: string | null
           principal?: number
+          rate_type?: Database["public"]["Enums"]["loan_rate_type"]
+          rate_value?: number
           requested_at?: string
           status?: Database["public"]["Enums"]["loan_status"]
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "loans_disbursement_channel_id_fkey"
+            columns: ["disbursement_channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       monthly_contributions: {
         Row: {
           amount: number
+          channel_id: string | null
           confirmed_at: string | null
           confirmed_by: string | null
           created_at: string
@@ -126,6 +205,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          channel_id?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
@@ -140,6 +220,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          channel_id?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string
@@ -152,7 +233,15 @@ export type Database = {
           user_id?: string
           year?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "monthly_contributions_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -219,6 +308,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      channel_balance: { Args: { _channel_id: string }; Returns: number }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -230,6 +320,7 @@ export type Database = {
     Enums: {
       app_role: "admin" | "socio"
       contribution_status: "pendiente" | "reportado" | "confirmado"
+      loan_rate_type: "daily" | "monthly"
       loan_status: "pendiente_aprobacion" | "activo" | "pagado" | "rechazado"
       payment_status: "reportado" | "confirmado"
       profile_status: "pendiente" | "activo" | "retirado"
@@ -362,6 +453,7 @@ export const Constants = {
     Enums: {
       app_role: ["admin", "socio"],
       contribution_status: ["pendiente", "reportado", "confirmado"],
+      loan_rate_type: ["daily", "monthly"],
       loan_status: ["pendiente_aprobacion", "activo", "pagado", "rechazado"],
       payment_status: ["reportado", "confirmado"],
       profile_status: ["pendiente", "activo", "retirado"],
