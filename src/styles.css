@@ -143,3 +143,14 @@
     color: var(--color-foreground);
   }
 }
+
+/* Ocultar badge de Lovable en la app publicada */
+#lovable-badge,
+[data-lovable-badge],
+a[href*="lovable.dev"][target="_blank"],
+a[href*="lovable.app"][target="_blank"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
