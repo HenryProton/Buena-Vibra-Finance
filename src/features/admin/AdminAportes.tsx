@@ -123,7 +123,7 @@ export function AdminAportes() {
                               channels={channels}
                               chName={chName}
                               cls={isPastOrCurrent ? bg : "bg-muted/20"}
-                              onSave={(vals) => upsertPago.mutate({ user_id: p.id, year: c.year, month: c.month, num_acciones: p.num_acciones || 1, ...vals })}
+                              onSave={(vals: { amount: number; channel_id: string | null }) => upsertPago.mutate({ user_id: p.id, year: c.year, month: c.month, num_acciones: p.num_acciones || 1, ...vals })}
                             />
                           </td>
                         );
