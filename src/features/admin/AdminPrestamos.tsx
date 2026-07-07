@@ -120,9 +120,13 @@ export function AdminPrestamos() {
                 Cap pend: {formatUSD(d.capital)} · Int: {formatUSD(d.interes)} · {d.days}d · {rateLabel(l.rate_type as RateType, Number(l.rate_value))}
               </div>
               <div className="text-xs text-muted-foreground">Canal: {chName(l.disbursement_channel_id)}</div>
-              {d.capital === 0 && d.interes === 0 && (
-                <Button size="sm" variant="outline" onClick={() => updateLoan.mutate({ id: l.id, patch: { status: "pagado" } })}>Marcar pagado</Button>
-              )}
+              <div className="flex gap-2 pt-1">
+                <RegistrarAbonoDialog loan={l} defaultInt={d.interes} channels={channels} adminId={user!.id}
+                  onDone={() => qc.invalidateQueries({ queryKey: ["admin-prestamos"] })} />
+                {d.capital === 0 && d.interes === 0 && (
+                  <Button size="sm" variant="outline" onClick={() => updateLoan.mutate({ id: l.id, patch: { status: "pagado" } })}>Marcar pagado</Button>
+                )}
+              </div>
             </Card>
           );
         })}
