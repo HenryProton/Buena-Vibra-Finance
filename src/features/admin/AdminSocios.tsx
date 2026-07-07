@@ -57,7 +57,10 @@ export function AdminSocios() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold">Socios</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold">Socios</h2>
+        <CrearSocioDialog onCreated={() => qc.invalidateQueries({ queryKey: ["admin-profiles-roles"] })} />
+      </div>
       {(data?.profiles ?? []).map((p) => {
         const admin = isAdminOf(p.id);
         const isMe = p.id === user?.id;
