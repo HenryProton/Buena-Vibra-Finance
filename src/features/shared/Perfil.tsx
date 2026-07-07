@@ -14,12 +14,17 @@ import { SocioPrestamos } from "@/features/socio/SocioPrestamos";
 import { AdminAjustes } from "@/features/admin/AdminAjustes";
 
 export function Perfil() {
-  const { profile, refresh, isAdmin } = useAuth();
+  const { user, profile, refresh, isAdmin } = useAuth();
   const { theme, setTheme } = useTheme();
   const [name, setName] = useState(profile?.full_name ?? "");
   const [phone, setPhone] = useState(profile?.phone ?? "");
   const [cedula, setCedula] = useState(profile?.cedula ?? "");
   const [saving, setSaving] = useState(false);
+
+  const isPlaceholderEmail = !!user?.email?.endsWith("@buenavibra.local");
+  const [newEmail, setNewEmail] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [savingCreds, setSavingCreds] = useState(false);
 
   async function save() {
     if (!profile) return;
@@ -31,6 +36,22 @@ export function Perfil() {
     refresh();
   }
 
+  async function updateCreds() {
+    const patch: { email?: string; password?: string } = {};
+    if (newEmail.trim()) patch.email = newEmail.trim();
+    if (newPassword) {
+      if (newPassword.length < 6) return toast.error("La contraseña debe tener al menos 6 caracteres");
+      patch.password = newPassword;
+    }
+    if (!patch.email && !patch.password) return toast.error("Nada que actualizar");
+    setSavingCreds(true);
+    const { error } = await supabase.auth.updateUser(patch);
+    setSavingCreds(false);
+    if (error) return toast.error(error.message);
+    toast.success(patch.email ? "Revisa tu correo para confirmar el cambio de email" : "Contraseña actualizada");
+    setNewEmail(""); setNewPassword("");
+  }
+
   async function logout() {
     await supabase.auth.signOut();
     location.href = "/auth";
@@ -38,6 +59,18 @@ export function Perfil() {
 
   return (
     <div className="space-y-4">
+      {isPlaceholderEmail && (
+        <Card className="p-4 space-y-3 border-primary bg-primary/5">
+          <div>
+            <h3 className="font-semibold">Configura tu correo y contraseña</h3>
+            <p className="text-xs text-muted-foreground">Tu cuenta fue creada por el administrador. Añade tu correo real y cambia la contraseña.</p>
+          </div>
+          <div className="space-y-1"><Label>Tu correo real</Label><Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="tucorreo@ejemplo.com" /></div>
+          <div className="space-y-1"><Label>Nueva contraseña (opcional, mín 6)</Label><Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
+          <Button onClick={updateCreds} disabled={savingCreds} className="w-full">{savingCreds ? "Guardando..." : "Actualizar"}</Button>
+        </Card>
+      )}
+
       <Card className="p-4 space-y-3">
         <h3 className="font-semibold">Mis datos</h3>
         <div className="space-y-1"><Label>Nombre completo</Label><Input value={name} onChange={(e) => setName(e.target.value)} /></div>
