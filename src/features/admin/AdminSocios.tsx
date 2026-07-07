@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { formatUSD } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
+import { adminCreateSocio } from "@/lib/admin-users.functions";
+import { UserPlus } from "lucide-react";
 
 export function AdminSocios() {
   const qc = useQueryClient();
@@ -54,7 +57,10 @@ export function AdminSocios() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold">Socios</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold">Socios</h2>
+        <CrearSocioDialog onCreated={() => qc.invalidateQueries({ queryKey: ["admin-profiles-roles"] })} />
+      </div>
       {(data?.profiles ?? []).map((p) => {
         const admin = isAdminOf(p.id);
         const isMe = p.id === user?.id;
@@ -116,6 +122,46 @@ function EditAcciones({ profile, onSave }: { profile: any; onSave: (n: number) =
           <Label>Acciones ($10 c/u)</Label>
           <Input type="number" min={0} value={n} onChange={(e) => setN(e.target.value)} />
           <Button className="w-full" onClick={() => { onSave(Number(n)); setOpen(false); }}>Guardar</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CrearSocioDialog({ onCreated }: { onCreated: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [acciones, setAcciones] = useState("1");
+  const [loading, setLoading] = useState(false);
+  const create = useServerFn(adminCreateSocio);
+
+  const submit = async () => {
+    setLoading(true);
+    try {
+      await create({ data: { email, password, full_name: fullName, num_acciones: Number(acciones) } });
+      toast.success("Socio creado");
+      setEmail(""); setPassword(""); setFullName(""); setAcciones("1");
+      setOpen(false);
+      onCreated();
+    } catch (e: any) {
+      toast.error(e.message ?? "Error");
+    } finally { setLoading(false); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild><Button size="sm"><UserPlus className="h-4 w-4 mr-1" />Crear socio</Button></DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Crear socio</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1"><Label>Nombre completo</Label><Input value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
+          <div className="space-y-1"><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
+          <div className="space-y-1"><Label>Contraseña (mín 6)</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+          <div className="space-y-1"><Label>Acciones ($10 c/u)</Label><Input type="number" min={1} value={acciones} onChange={(e) => setAcciones(e.target.value)} /></div>
+          <Button className="w-full" onClick={submit} disabled={loading}>{loading ? "Creando..." : "Crear y activar"}</Button>
+          <p className="text-[11px] text-muted-foreground">Comparte email y contraseña con el socio. Podrá cambiarla luego.</p>
         </div>
       </DialogContent>
     </Dialog>

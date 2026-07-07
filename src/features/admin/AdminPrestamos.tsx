@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useChannels } from "@/lib/queries";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus } from "lucide-react";
 
 export function AdminPrestamos() {
   const qc = useQueryClient();
@@ -61,7 +63,11 @@ export function AdminPrestamos() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold">Préstamos</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold">Préstamos</h2>
+        <NuevoPrestamoDialog profiles={data?.profiles ?? []} channels={channels} userId={user!.id}
+          onCreated={() => qc.invalidateQueries({ queryKey: ["admin-prestamos"] })} />
+      </div>
 
       {pendientes.length > 0 && (
         <section className="space-y-2">
@@ -114,9 +120,13 @@ export function AdminPrestamos() {
                 Cap pend: {formatUSD(d.capital)} · Int: {formatUSD(d.interes)} · {d.days}d · {rateLabel(l.rate_type as RateType, Number(l.rate_value))}
               </div>
               <div className="text-xs text-muted-foreground">Canal: {chName(l.disbursement_channel_id)}</div>
-              {d.capital === 0 && d.interes === 0 && (
-                <Button size="sm" variant="outline" onClick={() => updateLoan.mutate({ id: l.id, patch: { status: "pagado" } })}>Marcar pagado</Button>
-              )}
+              <div className="flex gap-2 pt-1">
+                <RegistrarAbonoDialog loan={l} defaultInt={d.interes} channels={channels} adminId={user!.id}
+                  onDone={() => qc.invalidateQueries({ queryKey: ["admin-prestamos"] })} />
+                {d.capital === 0 && d.interes === 0 && (
+                  <Button size="sm" variant="outline" onClick={() => updateLoan.mutate({ id: l.id, patch: { status: "pagado" } })}>Marcar pagado</Button>
+                )}
+              </div>
             </Card>
           );
         })}
@@ -198,5 +208,115 @@ function ConfirmarPagoCard({ payment, name, channels, chName, onConfirm }: { pay
       </div>
       <Button size="sm" onClick={() => onConfirm(channelId || null)}>Confirmar abono</Button>
     </Card>
+  );
+}
+
+function NuevoPrestamoDialog({ profiles, channels, userId, onCreated }: { profiles: any[]; channels: any[]; userId: string; onCreated: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [socioId, setSocioId] = useState("");
+  const [principal, setPrincipal] = useState("");
+  const [rateType, setRateType] = useState<RateType>("daily");
+  const [rateValue, setRateValue] = useState("1");
+  const [channelId, setChannelId] = useState(channels[0]?.id ?? "");
+  const [note, setNote] = useState("");
+  const activos = profiles.filter((p) => p.status === "activo");
+
+  const submit = async () => {
+    if (!socioId) return toast.error("Elige un socio");
+    const now = new Date().toISOString();
+    const dr = rateType === "daily" ? Number(rateValue) / 100 : Number(rateValue) / 100 / 30;
+    const { error } = await supabase.from("loans").insert({
+      user_id: socioId, principal: Number(principal),
+      rate_type: rateType, rate_value: Number(rateValue), daily_rate: dr,
+      disbursement_channel_id: channelId || null,
+      status: "activo", note,
+      approved_at: now, approved_by: userId, disbursed_at: now,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Préstamo creado");
+    setOpen(false); setSocioId(""); setPrincipal(""); setNote("");
+    onCreated();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" />Nuevo</Button></DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Nuevo préstamo</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1"><Label>Socio</Label>
+            <Select value={socioId} onValueChange={setSocioId}>
+              <SelectTrigger><SelectValue placeholder="Elegir socio" /></SelectTrigger>
+              <SelectContent>{activos.map((p) => <SelectItem key={p.id} value={p.id}>{p.full_name}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1"><Label>Monto (USD)</Label>
+            <Input type="number" step="0.01" value={principal} onChange={(e) => setPrincipal(e.target.value)} />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1"><Label>Tipo tasa</Label>
+              <Select value={rateType} onValueChange={(v) => setRateType(v as RateType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="daily">Diaria</SelectItem><SelectItem value="monthly">Mensual</SelectItem></SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1"><Label>Valor %</Label>
+              <Input type="number" step="0.01" value={rateValue} onChange={(e) => setRateValue(e.target.value)} />
+            </div>
+          </div>
+          <div className="space-y-1"><Label>Canal desembolso</Label>
+            <Select value={channelId} onValueChange={setChannelId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{channels.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1"><Label>Nota</Label><Textarea value={note} onChange={(e) => setNote(e.target.value)} /></div>
+          <Button className="w-full" onClick={submit}>Crear préstamo activo</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function RegistrarAbonoDialog({ loan, defaultInt, channels, adminId, onDone }: { loan: any; defaultInt: number; channels: any[]; adminId: string; onDone: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [cap, setCap] = useState("0");
+  const [intr, setIntr] = useState(defaultInt.toFixed(2));
+  const [channelId, setChannelId] = useState(channels[0]?.id ?? "");
+  const [note, setNote] = useState("");
+
+  const submit = async () => {
+    const now = new Date().toISOString();
+    const { error } = await supabase.from("loan_payments").insert({
+      loan_id: loan.id, user_id: loan.user_id,
+      amount_capital: Number(cap), amount_interest: Number(intr),
+      channel_id: channelId || null, note,
+      status: "confirmado", confirmed_at: now, confirmed_by: adminId,
+    });
+    if (error) return toast.error(error.message);
+    toast.success("Abono registrado");
+    setOpen(false); setCap("0"); setNote("");
+    onDone();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) setIntr(defaultInt.toFixed(2)); }}>
+      <DialogTrigger asChild><Button size="sm" variant="outline">Registrar abono</Button></DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Registrar abono (admin)</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <div className="space-y-1"><Label>Canal</Label>
+            <Select value={channelId} onValueChange={setChannelId}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{channels.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1"><Label>Intereses</Label><Input type="number" step="0.01" value={intr} onChange={(e) => setIntr(e.target.value)} /></div>
+          <div className="space-y-1"><Label>Capital</Label><Input type="number" step="0.01" value={cap} onChange={(e) => setCap(e.target.value)} /></div>
+          <div className="space-y-1"><Label>Nota</Label><Textarea value={note} onChange={(e) => setNote(e.target.value)} /></div>
+          <Button className="w-full" onClick={submit}>Registrar y confirmar</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
