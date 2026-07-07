@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useChannels } from "@/lib/queries";
+import { Textarea } from "@/components/ui/textarea";
+import { Plus } from "lucide-react";
 
 export function AdminPrestamos() {
   const qc = useQueryClient();
