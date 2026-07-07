@@ -63,7 +63,11 @@ export function AdminPrestamos() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-bold">Préstamos</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold">Préstamos</h2>
+        <NuevoPrestamoDialog profiles={data?.profiles ?? []} channels={channels} userId={user!.id}
+          onCreated={() => qc.invalidateQueries({ queryKey: ["admin-prestamos"] })} />
+      </div>
 
       {pendientes.length > 0 && (
         <section className="space-y-2">
