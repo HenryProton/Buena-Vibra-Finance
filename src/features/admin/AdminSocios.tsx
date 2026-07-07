@@ -130,39 +130,56 @@ function EditAcciones({ profile, onSave }: { profile: any; onSave: (n: number) =
 
 function CrearSocioDialog({ onCreated }: { onCreated: () => void }) {
   const [open, setOpen] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [username, setUsername] = useState("");
   const [acciones, setAcciones] = useState("1");
   const [loading, setLoading] = useState(false);
+  const [creds, setCreds] = useState<{ login_email: string; password: string } | null>(null);
   const create = useServerFn(adminCreateSocio);
 
   const submit = async () => {
     setLoading(true);
     try {
-      await create({ data: { email, password, full_name: fullName, num_acciones: Number(acciones) } });
+      const res = await create({ data: { full_name: fullName, username, num_acciones: Number(acciones) } });
       toast.success("Socio creado");
-      setEmail(""); setPassword(""); setFullName(""); setAcciones("1");
-      setOpen(false);
+      setCreds({ login_email: res.login_email, password: res.password });
       onCreated();
     } catch (e: any) {
       toast.error(e.message ?? "Error");
     } finally { setLoading(false); }
   };
 
+  const reset = () => {
+    setFullName(""); setUsername(""); setAcciones("1"); setCreds(null); setOpen(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); else setOpen(true); }}>
       <DialogTrigger asChild><Button size="sm"><UserPlus className="h-4 w-4 mr-1" />Crear socio</Button></DialogTrigger>
       <DialogContent>
         <DialogHeader><DialogTitle>Crear socio</DialogTitle></DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1"><Label>Nombre completo</Label><Input value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
-          <div className="space-y-1"><Label>Email</Label><Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-          <div className="space-y-1"><Label>Contraseña (mín 6)</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
-          <div className="space-y-1"><Label>Acciones ($10 c/u)</Label><Input type="number" min={1} value={acciones} onChange={(e) => setAcciones(e.target.value)} /></div>
-          <Button className="w-full" onClick={submit} disabled={loading}>{loading ? "Creando..." : "Crear y activar"}</Button>
-          <p className="text-[11px] text-muted-foreground">Comparte email y contraseña con el socio. Podrá cambiarla luego.</p>
-        </div>
+        {creds ? (
+          <div className="space-y-3">
+            <div className="rounded-md bg-emerald-500/10 border border-emerald-500/30 p-3 space-y-2 text-sm">
+              <p className="font-semibold text-emerald-700 dark:text-emerald-400">Socio creado. Comparte estos datos:</p>
+              <div><p className="text-xs text-muted-foreground">Usuario para ingresar</p><p className="font-mono font-bold">{creds.login_email}</p></div>
+              <div><p className="text-xs text-muted-foreground">Contraseña</p><p className="font-mono font-bold">{creds.password}</p></div>
+              <p className="text-[11px] text-muted-foreground">Al ingresar por primera vez, el socio podrá poner su correo real y cambiar la contraseña desde Perfil.</p>
+            </div>
+            <Button className="w-full" onClick={reset}>Listo</Button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="space-y-1"><Label>Nombre completo</Label><Input value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
+            <div className="space-y-1">
+              <Label>Usuario (opcional)</Label>
+              <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Ej: maria (se genera del nombre si lo dejas vacío)" />
+              <p className="text-[11px] text-muted-foreground">Se creará el ingreso <strong>usuario@buenavibra.local</strong> con contraseña <strong>123456</strong>.</p>
+            </div>
+            <div className="space-y-1"><Label>Acciones ($10 c/u)</Label><Input type="number" min={1} value={acciones} onChange={(e) => setAcciones(e.target.value)} /></div>
+            <Button className="w-full" onClick={submit} disabled={loading || !fullName.trim()}>{loading ? "Creando..." : "Crear y activar"}</Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
