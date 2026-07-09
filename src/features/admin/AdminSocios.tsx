@@ -31,7 +31,7 @@ export function AdminSocios() {
   });
 
   const upd = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: { status?: "pendiente" | "activo" | "retirado"; num_acciones?: number } }) => {
+    mutationFn: async ({ id, patch }: { id: string; patch: { status?: "pendiente" | "activo" | "retirado"; num_acciones?: number; fecha_inicio?: string | null; fecha_fin?: string | null } }) => {
       const { error } = await supabase.from("profiles").update(patch).eq("id", id);
       if (error) throw error;
     },
