@@ -247,6 +247,8 @@ export type Database = {
         Row: {
           cedula: string | null
           created_at: string
+          fecha_fin: string | null
+          fecha_inicio: string | null
           full_name: string
           id: string
           joined_at: string
@@ -259,6 +261,8 @@ export type Database = {
         Insert: {
           cedula?: string | null
           created_at?: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
           full_name?: string
           id: string
           joined_at?: string
@@ -271,6 +275,8 @@ export type Database = {
         Update: {
           cedula?: string | null
           created_at?: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
           full_name?: string
           id?: string
           joined_at?: string
