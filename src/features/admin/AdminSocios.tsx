@@ -12,8 +12,8 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { formatUSD } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
-import { adminCreateSocio } from "@/lib/admin-users.functions";
-import { UserPlus } from "lucide-react";
+import { adminCreateSocio, adminGetSocioLogin } from "@/lib/admin-users.functions";
+import { UserPlus, Share2 } from "lucide-react";
 
 export function AdminSocios() {
   const qc = useQueryClient();
@@ -68,7 +68,12 @@ export function AdminSocios() {
           <Card key={p.id} className="p-4 space-y-2">
             <div className="flex items-start justify-between">
               <div>
-                <p className="font-semibold">{p.full_name || "(Sin nombre)"} {admin && <Badge className="ml-1 bg-primary/20 text-primary">Admin</Badge>}</p>
+                <p className="font-semibold">
+                  {p.full_name || "(Sin nombre)"}{" "}
+                  <Badge className={admin ? "ml-1 bg-primary/20 text-primary" : "ml-1 bg-muted text-muted-foreground"}>
+                    {admin ? "Admin" : "Socio"}
+                  </Badge>
+                </p>
                 <p className="text-xs text-muted-foreground">{p.num_acciones} acción(es) · {formatUSD(Number(p.num_acciones) * 10)}/mes</p>
               </div>
               <StatusBadge status={p.status} />
@@ -93,6 +98,7 @@ export function AdminSocios() {
                 <Button size="sm" variant="outline" onClick={() => upd.mutate({ id: p.id, patch: { status: "activo" } })}>Reactivar</Button>
               )}
               <EditAcciones profile={p} onSave={(n) => upd.mutate({ id: p.id, patch: { num_acciones: n } })} />
+              <CompartirWhatsapp profile={p} />
             </div>
           </Card>
         );
@@ -178,6 +184,78 @@ function CrearSocioDialog({ onCreated }: { onCreated: () => void }) {
             </div>
             <div className="space-y-1"><Label>Acciones ($10 c/u)</Label><Input type="number" min={1} value={acciones} onChange={(e) => setAcciones(e.target.value)} /></div>
             <Button className="w-full" onClick={submit} disabled={loading || !fullName.trim()}>{loading ? "Creando..." : "Crear y activar"}</Button>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function CompartirWhatsapp({ profile }: { profile: any }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [info, setInfo] = useState<{ login_email: string; is_placeholder: boolean; default_password: string } | null>(null);
+  const [phone, setPhone] = useState(profile.phone ?? "");
+  const getLogin = useServerFn(adminGetSocioLogin);
+
+  const openDialog = async () => {
+    setOpen(true);
+    if (info) return;
+    setLoading(true);
+    try {
+      const res = await getLogin({ data: { user_id: profile.id } });
+      setInfo(res);
+    } catch (e: any) {
+      toast.error(e.message ?? "Error");
+    } finally { setLoading(false); }
+  };
+
+  const publishedUrl = "https://buena-vibra-cajita.lovable.app";
+  const message = info
+    ? `Hola ${profile.full_name}, te comparto el acceso a la caja Buena Vibra:\n\n🔗 App: ${publishedUrl}\n👤 Usuario: ${info.login_email}\n🔑 Contraseña: ${info.default_password}\n\nAl entrar por primera vez, en Perfil podrás poner tu correo real y cambiar la contraseña.`
+    : "";
+
+  const openWa = () => {
+    const digits = String(phone).replace(/[^0-9]/g, "");
+    const url = digits
+      ? `https://wa.me/${digits}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  };
+
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(message); toast.success("Mensaje copiado"); }
+    catch { toast.error("No se pudo copiar"); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" onClick={openDialog}>
+          <Share2 className="h-4 w-4 mr-1" />WhatsApp
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Compartir acceso por WhatsApp</DialogTitle></DialogHeader>
+        {loading || !info ? (
+          <p className="text-sm text-muted-foreground">Cargando datos...</p>
+        ) : (
+          <div className="space-y-3">
+            {!info.is_placeholder && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                Este socio ya cambió su correo de ingreso. La contraseña <strong>{info.default_password}</strong> solo aplica si no la ha cambiado.
+              </p>
+            )}
+            <div className="rounded-md bg-muted/40 p-3 text-sm whitespace-pre-wrap font-mono">{message}</div>
+            <div className="space-y-1">
+              <Label>Teléfono con código de país (opcional)</Label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Ej: 573001234567" />
+              <p className="text-[11px] text-muted-foreground">Si lo dejas vacío, se abrirá WhatsApp para que elijas el contacto.</p>
+            </div>
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={openWa}>Abrir WhatsApp</Button>
+              <Button variant="outline" onClick={copy}>Copiar</Button>
+            </div>
           </div>
         )}
       </DialogContent>
