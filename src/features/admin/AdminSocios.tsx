@@ -12,8 +12,8 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { formatUSD } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
-import { adminCreateSocio } from "@/lib/admin-users.functions";
-import { UserPlus } from "lucide-react";
+import { adminCreateSocio, adminGetSocioLogin } from "@/lib/admin-users.functions";
+import { UserPlus, Share2 } from "lucide-react";
 
 export function AdminSocios() {
   const qc = useQueryClient();
