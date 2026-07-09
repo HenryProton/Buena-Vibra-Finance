@@ -31,7 +31,7 @@ export function AdminSocios() {
   });
 
   const upd = useMutation({
-    mutationFn: async ({ id, patch }: { id: string; patch: { status?: "pendiente" | "activo" | "retirado"; num_acciones?: number } }) => {
+    mutationFn: async ({ id, patch }: { id: string; patch: { status?: "pendiente" | "activo" | "retirado"; num_acciones?: number; fecha_inicio?: string | null; fecha_fin?: string | null } }) => {
       const { error } = await supabase.from("profiles").update(patch).eq("id", id);
       if (error) throw error;
     },
@@ -98,6 +98,7 @@ export function AdminSocios() {
                 <Button size="sm" variant="outline" onClick={() => upd.mutate({ id: p.id, patch: { status: "activo" } })}>Reactivar</Button>
               )}
               <EditAcciones profile={p} onSave={(n) => upd.mutate({ id: p.id, patch: { num_acciones: n } })} />
+              <EditPeriodo profile={p} onSave={(v: { fecha_inicio: string | null; fecha_fin: string | null }) => upd.mutate({ id: p.id, patch: v })} />
               <CompartirWhatsapp profile={p} />
             </div>
           </Card>
@@ -128,6 +129,35 @@ function EditAcciones({ profile, onSave }: { profile: any; onSave: (n: number) =
           <Label>Acciones ($10 c/u)</Label>
           <Input type="number" min={0} value={n} onChange={(e) => setN(e.target.value)} />
           <Button className="w-full" onClick={() => { onSave(Number(n)); setOpen(false); }}>Guardar</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function EditPeriodo({ profile, onSave }: { profile: any; onSave: (v: { fecha_inicio: string | null; fecha_fin: string | null }) => void }) {
+  const [open, setOpen] = useState(false);
+  const [inicio, setInicio] = useState(profile.fecha_inicio ?? "");
+  const [fin, setFin] = useState(profile.fecha_fin ?? "");
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild><Button size="sm" variant="ghost">Periodo</Button></DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Periodo de participación</DialogTitle></DialogHeader>
+        <div className="space-y-3">
+          <p className="text-xs text-muted-foreground">Solo se contarán aportes desde/hasta este rango. Si están vacíos, se usa el rango general de la caja.</p>
+          <div className="space-y-1">
+            <Label>Desde (primer mes)</Label>
+            <Input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+          </div>
+          <div className="space-y-1">
+            <Label>Hasta (último mes)</Label>
+            <Input type="date" value={fin} onChange={(e) => setFin(e.target.value)} />
+          </div>
+          <div className="flex gap-2">
+            <Button className="flex-1" onClick={() => { onSave({ fecha_inicio: inicio || null, fecha_fin: fin || null }); setOpen(false); }}>Guardar</Button>
+            <Button variant="outline" onClick={() => { setInicio(""); setFin(""); onSave({ fecha_inicio: null, fecha_fin: null }); setOpen(false); }}>Usar rango caja</Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

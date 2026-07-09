@@ -57,8 +57,10 @@ export function SocioAportes() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Build cycle months from settings.fecha_inicio → fecha_fin
-  const cycle = buildCycle(settings?.fecha_inicio, settings?.fecha_fin);
+  // Build cycle months intersected with the socio's own participation window.
+  const socioInicio = (profile as any)?.fecha_inicio ?? null;
+  const socioFin = (profile as any)?.fecha_fin ?? null;
+  const cycle = buildCycle(settings?.fecha_inicio, settings?.fecha_fin, socioInicio, socioFin);
   const confirmadosSet = new Set(
     aportes.filter((a) => a.status === "confirmado").map((a) => `${a.year}-${a.month}`)
   );
@@ -197,20 +199,26 @@ export function SocioAportes() {
   );
 }
 
-function buildCycle(inicio?: string | null, fin?: string | null): { year: number; month: number }[] {
-  if (!inicio || !fin) {
-    const y = new Date().getFullYear();
-    return Array.from({ length: 12 }, (_, i) => ({ year: y, month: i + 1 }));
-  }
-  const start = new Date(inicio);
-  const end = new Date(fin);
+function buildCycle(inicio?: string | null, fin?: string | null, socioInicio?: string | null, socioFin?: string | null): { year: number; month: number }[] {
+  const now = new Date();
+  const defaultInicio = `${now.getFullYear()}-01-01`;
+  const defaultFin = `${now.getFullYear()}-12-31`;
+  const parseYm = (s: string) => {
+    const d = new Date(s);
+    return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1 };
+  };
+  const cajaS = parseYm(inicio || defaultInicio);
+  const cajaE = parseYm(fin || defaultFin);
+  const socS = socioInicio ? parseYm(socioInicio) : cajaS;
+  const socE = socioFin ? parseYm(socioFin) : cajaE;
+  const cmp = (a: { y: number; m: number }, b: { y: number; m: number }) => a.y !== b.y ? a.y - b.y : a.m - b.m;
+  const start = cmp(cajaS, socS) >= 0 ? cajaS : socS;
+  const end = cmp(cajaE, socE) <= 0 ? cajaE : socE;
   const out: { year: number; month: number }[] = [];
-  let y = start.getUTCFullYear(), m = start.getUTCMonth() + 1;
-  const endY = end.getUTCFullYear(), endM = end.getUTCMonth() + 1;
-  while (y < endY || (y === endY && m <= endM)) {
+  let y = start.y, m = start.m;
+  while (y < end.y || (y === end.y && m <= end.m)) {
     out.push({ year: y, month: m });
-    m++;
-    if (m > 12) { m = 1; y++; }
+    m++; if (m > 12) { m = 1; y++; }
     if (out.length > 60) break;
   }
   return out;

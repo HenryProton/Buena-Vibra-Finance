@@ -26,7 +26,7 @@ export function AdminAportes() {
     queryFn: async () => {
       const [{ data: c }, { data: p }] = await Promise.all([
         supabase.from("monthly_contributions").select("*").order("created_at", { ascending: false }),
-        supabase.from("profiles").select("id, full_name, status, num_acciones"),
+        supabase.from("profiles").select("id, full_name, status, num_acciones, fecha_inicio, fecha_fin"),
       ]);
       return { contribs: c ?? [], profiles: p ?? [] };
     },
@@ -100,7 +100,9 @@ export function AdminAportes() {
                   const mine = (data?.contribs ?? []).filter((c) => c.user_id === p.id);
                   const now = new Date();
                   const cy = now.getFullYear(); const cm = now.getMonth() + 1;
+                  const inWin = (y: number, m: number) => monthInSocioWindow(y, m, (p as any).fecha_inicio, (p as any).fecha_fin);
                   const pastMissing = cycle.some((c) =>
+                    inWin(c.year, c.month) &&
                     (c.year < cy || (c.year === cy && c.month <= cm)) &&
                     !mine.some((m) => m.year === c.year && m.month === c.month && m.status === "confirmado")
                   );
@@ -108,6 +110,14 @@ export function AdminAportes() {
                     <tr key={p.id} className="border-b border-border hover:bg-muted/30">
                       <td className="p-1 sticky left-0 bg-card font-medium max-w-[100px] truncate">{p.full_name}</td>
                       {cycle.map((c) => {
+                        const outOfWindow = !inWin(c.year, c.month);
+                        if (outOfWindow) {
+                          return (
+                            <td key={`${c.year}-${c.month}`} className="p-0.5">
+                              <div className="w-full h-7 rounded bg-muted/10 text-[11px] text-muted-foreground/50 flex items-center justify-center" title="Fuera del periodo del socio">–</div>
+                            </td>
+                          );
+                        }
                         const found = mine.find((m) => m.year === c.year && m.month === c.month);
                         const st = found?.status;
                         const bg = st === "confirmado" ? "bg-emerald-500/40" : st === "reportado" ? "bg-amber-500/40" : "bg-destructive/20";
@@ -228,4 +238,19 @@ function buildCycle(inicio?: string | null, fin?: string | null): { year: number
     if (out.length > 60) break;
   }
   return out;
+}
+
+function monthInSocioWindow(year: number, month: number, inicio?: string | null, fin?: string | null): boolean {
+  const ym = year * 100 + month;
+  if (inicio) {
+    const d = new Date(inicio);
+    const s = d.getUTCFullYear() * 100 + (d.getUTCMonth() + 1);
+    if (ym < s) return false;
+  }
+  if (fin) {
+    const d = new Date(fin);
+    const e = d.getUTCFullYear() * 100 + (d.getUTCMonth() + 1);
+    if (ym > e) return false;
+  }
+  return true;
 }
