@@ -53,3 +53,17 @@ export const adminCreateSocio = createServerFn({ method: "POST" })
 
     return { id: uid, username, password: DEFAULT_PASSWORD, login_email: `${username}@${PLACEHOLDER_DOMAIN}` };
   });
+
+export const adminGetSocioLogin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { user_id: string }) => input)
+  .handler(async ({ data, context }) => {
+    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (!isAdmin) throw new Error("Solo administradores");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: res, error } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
+    if (error) throw new Error(error.message);
+    const email = res.user?.email ?? "";
+    const isPlaceholder = email.endsWith(`@${PLACEHOLDER_DOMAIN}`);
+    return { login_email: email, is_placeholder: isPlaceholder, default_password: DEFAULT_PASSWORD };
+  });
