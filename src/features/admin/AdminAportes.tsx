@@ -227,6 +227,17 @@ function buildCycle(inicio?: string | null, fin?: string | null): { year: number
   if (!inicio || !fin) {
     const y = new Date().getFullYear();
     return Array.from({ length: 12 }, (_, i) => ({ year: y, month: i + 1 }));
+  }
+  const s = new Date(inicio), e = new Date(fin);
+  const out: { year: number; month: number }[] = [];
+  let y = s.getUTCFullYear(), m = s.getUTCMonth() + 1;
+  const ey = e.getUTCFullYear(), em = e.getUTCMonth() + 1;
+  while (y < ey || (y === ey && m <= em)) {
+    out.push({ year: y, month: m });
+    m++; if (m > 12) { m = 1; y++; }
+    if (out.length > 60) break;
+  }
+  return out;
 }
 
 function monthInSocioWindow(year: number, month: number, inicio?: string | null, fin?: string | null): boolean {
@@ -242,15 +253,4 @@ function monthInSocioWindow(year: number, month: number, inicio?: string | null,
     if (ym > e) return false;
   }
   return true;
-}
-  const s = new Date(inicio), e = new Date(fin);
-  const out: { year: number; month: number }[] = [];
-  let y = s.getUTCFullYear(), m = s.getUTCMonth() + 1;
-  const ey = e.getUTCFullYear(), em = e.getUTCMonth() + 1;
-  while (y < ey || (y === ey && m <= em)) {
-    out.push({ year: y, month: m });
-    m++; if (m > 12) { m = 1; y++; }
-    if (out.length > 60) break;
-  }
-  return out;
 }
