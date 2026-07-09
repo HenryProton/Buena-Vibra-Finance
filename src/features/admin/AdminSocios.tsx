@@ -98,7 +98,7 @@ export function AdminSocios() {
                 <Button size="sm" variant="outline" onClick={() => upd.mutate({ id: p.id, patch: { status: "activo" } })}>Reactivar</Button>
               )}
               <EditAcciones profile={p} onSave={(n) => upd.mutate({ id: p.id, patch: { num_acciones: n } })} />
-              <EditPeriodo profile={p} onSave={(v) => upd.mutate({ id: p.id, patch: v })} />
+              <EditPeriodo profile={p} onSave={(v: { fecha_inicio: string | null; fecha_fin: string | null }) => upd.mutate({ id: p.id, patch: v })} />
               <CompartirWhatsapp profile={p} />
             </div>
           </Card>
