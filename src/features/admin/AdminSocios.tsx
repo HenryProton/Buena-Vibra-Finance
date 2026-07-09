@@ -190,3 +190,75 @@ function CrearSocioDialog({ onCreated }: { onCreated: () => void }) {
     </Dialog>
   );
 }
+
+function CompartirWhatsapp({ profile }: { profile: any }) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [info, setInfo] = useState<{ login_email: string; is_placeholder: boolean; default_password: string } | null>(null);
+  const [phone, setPhone] = useState(profile.phone ?? "");
+  const getLogin = useServerFn(adminGetSocioLogin);
+
+  const openDialog = async () => {
+    setOpen(true);
+    if (info) return;
+    setLoading(true);
+    try {
+      const res = await getLogin({ data: { user_id: profile.id } });
+      setInfo(res);
+    } catch (e: any) {
+      toast.error(e.message ?? "Error");
+    } finally { setLoading(false); }
+  };
+
+  const publishedUrl = "https://buena-vibra-cajita.lovable.app";
+  const message = info
+    ? `Hola ${profile.full_name}, te comparto el acceso a la caja Buena Vibra:\n\n🔗 App: ${publishedUrl}\n👤 Usuario: ${info.login_email}\n🔑 Contraseña: ${info.default_password}\n\nAl entrar por primera vez, en Perfil podrás poner tu correo real y cambiar la contraseña.`
+    : "";
+
+  const openWa = () => {
+    const digits = String(phone).replace(/[^0-9]/g, "");
+    const url = digits
+      ? `https://wa.me/${digits}?text=${encodeURIComponent(message)}`
+      : `https://wa.me/?text=${encodeURIComponent(message)}`;
+    window.open(url, "_blank");
+  };
+
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(message); toast.success("Mensaje copiado"); }
+    catch { toast.error("No se pudo copiar"); }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button size="sm" variant="outline" onClick={openDialog}>
+          <Share2 className="h-4 w-4 mr-1" />WhatsApp
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader><DialogTitle>Compartir acceso por WhatsApp</DialogTitle></DialogHeader>
+        {loading || !info ? (
+          <p className="text-sm text-muted-foreground">Cargando datos...</p>
+        ) : (
+          <div className="space-y-3">
+            {!info.is_placeholder && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                Este socio ya cambió su correo de ingreso. La contraseña <strong>{info.default_password}</strong> solo aplica si no la ha cambiado.
+              </p>
+            )}
+            <div className="rounded-md bg-muted/40 p-3 text-sm whitespace-pre-wrap font-mono">{message}</div>
+            <div className="space-y-1">
+              <Label>Teléfono con código de país (opcional)</Label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Ej: 573001234567" />
+              <p className="text-[11px] text-muted-foreground">Si lo dejas vacío, se abrirá WhatsApp para que elijas el contacto.</p>
+            </div>
+            <div className="flex gap-2">
+              <Button className="flex-1" onClick={openWa}>Abrir WhatsApp</Button>
+              <Button variant="outline" onClick={copy}>Copiar</Button>
+            </div>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
