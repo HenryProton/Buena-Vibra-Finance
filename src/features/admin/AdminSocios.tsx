@@ -68,7 +68,12 @@ export function AdminSocios() {
           <Card key={p.id} className="p-4 space-y-2">
             <div className="flex items-start justify-between">
               <div>
-                <p className="font-semibold">{p.full_name || "(Sin nombre)"} {admin && <Badge className="ml-1 bg-primary/20 text-primary">Admin</Badge>}</p>
+                <p className="font-semibold">
+                  {p.full_name || "(Sin nombre)"}{" "}
+                  <Badge className={admin ? "ml-1 bg-primary/20 text-primary" : "ml-1 bg-muted text-muted-foreground"}>
+                    {admin ? "Admin" : "Socio"}
+                  </Badge>
+                </p>
                 <p className="text-xs text-muted-foreground">{p.num_acciones} acción(es) · {formatUSD(Number(p.num_acciones) * 10)}/mes</p>
               </div>
               <StatusBadge status={p.status} />
@@ -93,6 +98,7 @@ export function AdminSocios() {
                 <Button size="sm" variant="outline" onClick={() => upd.mutate({ id: p.id, patch: { status: "activo" } })}>Reactivar</Button>
               )}
               <EditAcciones profile={p} onSave={(n) => upd.mutate({ id: p.id, patch: { num_acciones: n } })} />
+              <CompartirWhatsapp profile={p} />
             </div>
           </Card>
         );
