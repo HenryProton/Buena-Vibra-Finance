@@ -227,7 +227,22 @@ function buildCycle(inicio?: string | null, fin?: string | null): { year: number
   if (!inicio || !fin) {
     const y = new Date().getFullYear();
     return Array.from({ length: 12 }, (_, i) => ({ year: y, month: i + 1 }));
+}
+
+function monthInSocioWindow(year: number, month: number, inicio?: string | null, fin?: string | null): boolean {
+  const ym = year * 100 + month;
+  if (inicio) {
+    const d = new Date(inicio);
+    const s = d.getUTCFullYear() * 100 + (d.getUTCMonth() + 1);
+    if (ym < s) return false;
   }
+  if (fin) {
+    const d = new Date(fin);
+    const e = d.getUTCFullYear() * 100 + (d.getUTCMonth() + 1);
+    if (ym > e) return false;
+  }
+  return true;
+}
   const s = new Date(inicio), e = new Date(fin);
   const out: { year: number; month: number }[] = [];
   let y = s.getUTCFullYear(), m = s.getUTCMonth() + 1;
