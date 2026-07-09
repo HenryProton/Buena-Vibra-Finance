@@ -26,7 +26,7 @@ export function AdminAportes() {
     queryFn: async () => {
       const [{ data: c }, { data: p }] = await Promise.all([
         supabase.from("monthly_contributions").select("*").order("created_at", { ascending: false }),
-        supabase.from("profiles").select("id, full_name, status, num_acciones"),
+        supabase.from("profiles").select("id, full_name, status, num_acciones, fecha_inicio, fecha_fin"),
       ]);
       return { contribs: c ?? [], profiles: p ?? [] };
     },
