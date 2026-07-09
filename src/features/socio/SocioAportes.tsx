@@ -57,8 +57,10 @@ export function SocioAportes() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  // Build cycle months from settings.fecha_inicio → fecha_fin
-  const cycle = buildCycle(settings?.fecha_inicio, settings?.fecha_fin);
+  // Build cycle months intersected with the socio's own participation window.
+  const socioInicio = (profile as any)?.fecha_inicio ?? null;
+  const socioFin = (profile as any)?.fecha_fin ?? null;
+  const cycle = buildCycle(settings?.fecha_inicio, settings?.fecha_fin, socioInicio, socioFin);
   const confirmadosSet = new Set(
     aportes.filter((a) => a.status === "confirmado").map((a) => `${a.year}-${a.month}`)
   );
