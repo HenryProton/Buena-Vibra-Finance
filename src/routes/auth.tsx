@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import logo from "@/assets/logo.jpg";
 import { useNavigate } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { redeemInvitation } from "@/lib/invitations.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -23,11 +25,26 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [inviteCode, setInviteCode] = useState<string>("");
+  const [invite, setInvite] = useState<any>(null);
+  const [tab, setTab] = useState<"login" | "signup">("login");
+  const redeem = useServerFn(redeemInvitation);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/app" });
     });
+    const params = new URLSearchParams(window.location.search);
+    const code = (params.get("invite") || "").toUpperCase();
+    if (code) {
+      setInviteCode(code);
+      setTab("signup");
+      (async () => {
+        const { data } = await supabase.from("invitations" as any).select("*").eq("code", code).maybeSingle();
+        if (data) setInvite(data);
+        else toast.error("Invitación no válida o expirada");
+      })();
+    }
   }, [navigate]);
 
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
@@ -48,17 +65,39 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     const fd = new FormData(e.currentTarget);
-    const { error } = await supabase.auth.signUp({
-      email: String(fd.get("email")),
-      password: String(fd.get("password")),
+    const email = String(fd.get("email"));
+    const password = String(fd.get("password"));
+    const fullName = String(fd.get("full_name") || invite?.full_name || "");
+
+    const { data: signUpData, error } = await supabase.auth.signUp({
+      email,
+      password,
       options: {
         emailRedirectTo: `${window.location.origin}/app`,
-        data: { full_name: String(fd.get("full_name")) },
+        data: { full_name: fullName },
       },
     });
+    if (error) { setLoading(false); return toast.error(error.message); }
+
+    // If invite, ensure a session and redeem
+    if (invite) {
+      if (!signUpData.session) {
+        // try sign-in (email confirmation may be disabled but session missing)
+        await supabase.auth.signInWithPassword({ email, password });
+      }
+      try {
+        await redeem({ data: { code: inviteCode } });
+        toast.success("¡Cuenta creada y activada!");
+        setLoading(false);
+        navigate({ to: "/app" });
+        return;
+      } catch (e: any) {
+        toast.error(`Cuenta creada, pero no se pudo aplicar la invitación: ${e.message ?? e}`);
+      }
+    } else {
+      toast.success("Registro exitoso. Espera la aprobación del administrador.");
+    }
     setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("Registro exitoso. Espera la aprobación del administrador.");
   }
 
   return (
@@ -70,11 +109,19 @@ function AuthPage() {
           <p className="text-sm text-muted-foreground text-center">Caja de ahorros</p>
         </div>
 
+        {invite && (
+          <Card className="p-4 bg-primary/10 border-primary/30 space-y-1">
+            <p className="text-sm font-semibold text-primary">Invitación válida</p>
+            <p className="text-sm">Hola <strong>{invite.full_name}</strong>, has sido invitado como socio.</p>
+            <p className="text-xs text-muted-foreground">{invite.num_acciones} acción(es) · Código {invite.code}</p>
+          </Card>
+        )}
+
         <Card className="p-6">
-          <Tabs defaultValue="login">
+          <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="login">Ingresar</TabsTrigger>
-              <TabsTrigger value="signup">Registrarme</TabsTrigger>
+              <TabsTrigger value="signup">{invite ? "Aceptar invitación" : "Registrarme"}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="login" className="mt-4">
@@ -95,9 +142,26 @@ function AuthPage() {
 
             <TabsContent value="signup" className="mt-4">
               <form onSubmit={handleSignup} className="space-y-4">
+                {!invite && (
+                  <div className="space-y-2">
+                    <Label htmlFor="invite_code">Código de invitación (opcional)</Label>
+                    <Input
+                      id="invite_code"
+                      value={inviteCode}
+                      onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                      onBlur={async () => {
+                        if (!inviteCode) return;
+                        const { data } = await supabase.from("invitations" as any).select("*").eq("code", inviteCode).maybeSingle();
+                        if (data) setInvite(data);
+                        else toast.error("Código no válido o expirado");
+                      }}
+                      placeholder="Ej: A3F9K2LM"
+                    />
+                  </div>
+                )}
                 <div className="space-y-2">
                   <Label htmlFor="full_name">Nombre completo</Label>
-                  <Input id="full_name" name="full_name" required />
+                  <Input id="full_name" name="full_name" required defaultValue={invite?.full_name ?? ""} />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="s-email">Correo</Label>
@@ -108,11 +172,13 @@ function AuthPage() {
                   <Input id="s-password" name="password" type="password" required minLength={6} autoComplete="new-password" />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
-                  {loading ? "Creando cuenta..." : "Crear cuenta"}
+                  {loading ? "Creando cuenta..." : invite ? "Crear cuenta y activar" : "Crear cuenta"}
                 </Button>
-                <p className="text-xs text-muted-foreground text-center">
-                  Tu cuenta quedará pendiente de aprobación por el administrador.
-                </p>
+                {!invite && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    Sin invitación, tu cuenta quedará pendiente de aprobación por el administrador.
+                  </p>
+                )}
               </form>
             </TabsContent>
           </Tabs>
