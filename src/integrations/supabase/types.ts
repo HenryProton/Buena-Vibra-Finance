@@ -65,6 +65,54 @@ export type Database = {
         }
         Relationships: []
       }
+      invitations: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          fecha_fin: string | null
+          fecha_inicio: string | null
+          full_name: string
+          id: string
+          num_acciones: number
+          status: string
+          updated_at: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
+          full_name: string
+          id?: string
+          num_acciones?: number
+          status?: string
+          updated_at?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          fecha_fin?: string | null
+          fecha_inicio?: string | null
+          full_name?: string
+          id?: string
+          num_acciones?: number
+          status?: string
+          updated_at?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: []
+      }
       loan_payments: {
         Row: {
           amount_capital: number

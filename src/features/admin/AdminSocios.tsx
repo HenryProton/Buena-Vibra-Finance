@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import { useState } from "react";
 import { formatUSD } from "@/lib/format";
 import { useAuth } from "@/lib/auth-context";
+import { adminCreateInvitation, adminCancelInvitation } from "@/lib/invitations.functions";
+import { Mail, Copy, X } from "lucide-react";
 import { adminCreateSocio, adminGetSocioLogin } from "@/lib/admin-users.functions";
 import { UserPlus, Share2 } from "lucide-react";
 
@@ -57,6 +59,7 @@ export function AdminSocios() {
 
   return (
     <div className="space-y-4">
+      <InvitationsPanel />
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Socios</h2>
         <CrearSocioDialog onCreated={() => qc.invalidateQueries({ queryKey: ["admin-profiles-roles"] })} />
@@ -290,5 +293,131 @@ function CompartirWhatsapp({ profile }: { profile: any }) {
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function InvitationsPanel() {
+  const qc = useQueryClient();
+  const [open, setOpen] = useState(false);
+  const [fullName, setFullName] = useState("");
+  const [acciones, setAcciones] = useState("1");
+  const [inicio, setInicio] = useState("");
+  const [fin, setFin] = useState("");
+  const [days, setDays] = useState("30");
+  const [created, setCreated] = useState<any>(null);
+  const create = useServerFn(adminCreateInvitation);
+  const cancel = useServerFn(adminCancelInvitation);
+
+  const { data: invites } = useQuery({
+    queryKey: ["admin-invitations"],
+    queryFn: async () => {
+      const { data } = await (supabase as any).from("invitations").select("*").order("created_at", { ascending: false });
+      return data ?? [];
+    },
+  });
+
+  const publishedUrl = "https://buena-vibra-cajita.lovable.app";
+  const linkFor = (code: string) => `${publishedUrl}/auth?invite=${code}`;
+
+  const submit = async () => {
+    try {
+      const res: any = await create({ data: {
+        full_name: fullName,
+        num_acciones: Number(acciones),
+        fecha_inicio: inicio || null,
+        fecha_fin: fin || null,
+        expires_in_days: Number(days),
+      }});
+      setCreated(res);
+      qc.invalidateQueries({ queryKey: ["admin-invitations"] });
+      toast.success("Invitación creada");
+    } catch (e: any) { toast.error(e.message ?? "Error"); }
+  };
+
+  const reset = () => {
+    setFullName(""); setAcciones("1"); setInicio(""); setFin(""); setDays("30"); setCreated(null); setOpen(false);
+  };
+
+  const copyLink = async (code: string) => {
+    try { await navigator.clipboard.writeText(linkFor(code)); toast.success("Link copiado"); }
+    catch { toast.error("No se pudo copiar"); }
+  };
+
+  const shareWa = (code: string, name: string) => {
+    const msg = `Hola ${name}, te invito a unirte a la caja Buena Vibra Finance.\n\nAbre este link y crea tu cuenta:\n${linkFor(code)}\n\nCódigo: ${code}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  const doCancel = async (id: string) => {
+    try { await cancel({ data: { id } }); toast.success("Anulada"); qc.invalidateQueries({ queryKey: ["admin-invitations"] }); }
+    catch (e: any) { toast.error(e.message ?? "Error"); }
+  };
+
+  return (
+    <Card className="p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold flex items-center gap-2"><Mail className="h-4 w-4" />Invitaciones</h3>
+          <p className="text-xs text-muted-foreground">Envía un link para que el socio cree su cuenta.</p>
+        </div>
+        <Dialog open={open} onOpenChange={(o) => { if (!o) reset(); else setOpen(true); }}>
+          <DialogTrigger asChild><Button size="sm">Nueva</Button></DialogTrigger>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Crear invitación</DialogTitle></DialogHeader>
+            {created ? (
+              <div className="space-y-3">
+                <div className="rounded-md bg-emerald-500/10 border border-emerald-500/30 p-3 space-y-2 text-sm">
+                  <p className="font-semibold text-emerald-700 dark:text-emerald-400">Invitación creada</p>
+                  <div><p className="text-xs text-muted-foreground">Código</p><p className="font-mono font-bold text-lg">{created.code}</p></div>
+                  <div><p className="text-xs text-muted-foreground">Link</p><p className="font-mono text-xs break-all">{linkFor(created.code)}</p></div>
+                </div>
+                <div className="flex gap-2">
+                  <Button className="flex-1" onClick={() => copyLink(created.code)}><Copy className="h-4 w-4 mr-1" />Copiar link</Button>
+                  <Button variant="outline" onClick={() => shareWa(created.code, created.full_name)}>WhatsApp</Button>
+                </div>
+                <Button variant="ghost" className="w-full" onClick={reset}>Listo</Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="space-y-1"><Label>Nombre del invitado</Label><Input value={fullName} onChange={(e) => setFullName(e.target.value)} /></div>
+                <div className="space-y-1"><Label>Acciones ($10 c/u)</Label><Input type="number" min={1} value={acciones} onChange={(e) => setAcciones(e.target.value)} /></div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1"><Label>Inicio (opc.)</Label><Input type="date" value={inicio} onChange={(e) => setInicio(e.target.value)} /></div>
+                  <div className="space-y-1"><Label>Fin (opc.)</Label><Input type="date" value={fin} onChange={(e) => setFin(e.target.value)} /></div>
+                </div>
+                <div className="space-y-1"><Label>Expira en (días)</Label><Input type="number" min={1} max={365} value={days} onChange={(e) => setDays(e.target.value)} /></div>
+                <Button className="w-full" onClick={submit} disabled={!fullName.trim()}>Crear invitación</Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      {(invites ?? []).length === 0 && (
+        <p className="text-xs text-muted-foreground">Aún no hay invitaciones.</p>
+      )}
+      {(invites ?? []).map((inv: any) => (
+        <div key={inv.id} className="rounded-md border border-border p-2 text-sm space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
+              <p className="font-semibold truncate">{inv.full_name}</p>
+              <p className="text-xs text-muted-foreground">{inv.num_acciones} acción(es) · <span className="font-mono">{inv.code}</span></p>
+            </div>
+            <Badge className={
+              inv.status === "pendiente" ? "bg-primary/20 text-primary" :
+              inv.status === "usada" ? "bg-emerald-500/20 text-emerald-600" :
+              "bg-muted text-muted-foreground"
+            }>{inv.status}</Badge>
+          </div>
+          {inv.status === "pendiente" && (
+            <div className="flex gap-2 pt-1">
+              <Button size="sm" variant="outline" onClick={() => copyLink(inv.code)}><Copy className="h-3 w-3 mr-1" />Link</Button>
+              <Button size="sm" variant="outline" onClick={() => shareWa(inv.code, inv.full_name)}>WhatsApp</Button>
+              <Button size="sm" variant="ghost" onClick={() => doCancel(inv.id)}><X className="h-3 w-3 mr-1" />Anular</Button>
+            </div>
+          )}
+        </div>
+      ))}
+    </Card>
   );
 }
