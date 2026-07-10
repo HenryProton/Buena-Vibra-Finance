@@ -59,6 +59,7 @@ export function AdminSocios() {
 
   return (
     <div className="space-y-4">
+      <InvitationsPanel />
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Socios</h2>
         <CrearSocioDialog onCreated={() => qc.invalidateQueries({ queryKey: ["admin-profiles-roles"] })} />
