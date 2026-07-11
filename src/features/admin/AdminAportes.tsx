@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { useCajaSettings, useChannels } from "@/lib/queries";
-import { Check, X } from "lucide-react";
+import { Check, X, Trash2 } from "lucide-react";
 
 export function AdminAportes() {
   const qc = useQueryClient();
@@ -62,6 +62,15 @@ export function AdminAportes() {
       }
     },
     onSuccess: () => { toast.success("Guardado"); qc.invalidateQueries({ queryKey: ["admin-aportes"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteContrib = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("monthly_contributions").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Eliminado"); qc.invalidateQueries({ queryKey: ["admin-aportes"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
