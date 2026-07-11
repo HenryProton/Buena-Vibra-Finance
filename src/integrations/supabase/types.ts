@@ -180,6 +180,7 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          consolidated_into: string | null
           created_at: string
           daily_rate: number
           disbursed_at: string | null
@@ -196,6 +197,7 @@ export type Database = {
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          consolidated_into?: string | null
           created_at?: string
           daily_rate?: number
           disbursed_at?: string | null
@@ -212,6 +214,7 @@ export type Database = {
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          consolidated_into?: string | null
           created_at?: string
           daily_rate?: number
           disbursed_at?: string | null
@@ -226,6 +229,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "loans_consolidated_into_fkey"
+            columns: ["consolidated_into"]
+            isOneToOne: false
+            referencedRelation: "loans"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "loans_disbursement_channel_id_fkey"
             columns: ["disbursement_channel_id"]
@@ -375,7 +385,12 @@ export type Database = {
       app_role: "admin" | "socio"
       contribution_status: "pendiente" | "reportado" | "confirmado"
       loan_rate_type: "daily" | "monthly"
-      loan_status: "pendiente_aprobacion" | "activo" | "pagado" | "rechazado"
+      loan_status:
+        | "pendiente_aprobacion"
+        | "activo"
+        | "pagado"
+        | "rechazado"
+        | "consolidado"
       payment_status: "reportado" | "confirmado"
       profile_status: "pendiente" | "activo" | "retirado"
     }
@@ -508,7 +523,13 @@ export const Constants = {
       app_role: ["admin", "socio"],
       contribution_status: ["pendiente", "reportado", "confirmado"],
       loan_rate_type: ["daily", "monthly"],
-      loan_status: ["pendiente_aprobacion", "activo", "pagado", "rechazado"],
+      loan_status: [
+        "pendiente_aprobacion",
+        "activo",
+        "pagado",
+        "rechazado",
+        "consolidado",
+      ],
       payment_status: ["reportado", "confirmado"],
       profile_status: ["pendiente", "activo", "retirado"],
     },

@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
 import { useCajaSettings, useChannels } from "@/lib/queries";
-import { Check, X } from "lucide-react";
+import { Check, X, Trash2 } from "lucide-react";
 
 export function AdminAportes() {
   const qc = useQueryClient();
@@ -62,6 +62,15 @@ export function AdminAportes() {
       }
     },
     onSuccess: () => { toast.success("Guardado"); qc.invalidateQueries({ queryKey: ["admin-aportes"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const deleteContrib = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("monthly_contributions").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => { toast.success("Eliminado"); qc.invalidateQueries({ queryKey: ["admin-aportes"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -134,6 +143,7 @@ export function AdminAportes() {
                               chName={chName}
                               cls={isPastOrCurrent ? bg : "bg-muted/20"}
                               onSave={(vals: { amount: number; channel_id: string | null }) => upsertPago.mutate({ user_id: p.id, year: c.year, month: c.month, num_acciones: p.num_acciones || 1, ...vals })}
+                              onDelete={found ? () => deleteContrib.mutate(found.id) : undefined}
                             />
                           </td>
                         );
@@ -172,15 +182,18 @@ export function AdminAportes() {
 
         <TabsContent value="historial" className="mt-3 space-y-2">
           {(data?.contribs ?? []).filter((a) => a.status !== "reportado").map((a) => (
-            <Card key={a.id} className="p-3 flex justify-between items-center">
-              <div>
-                <p className="text-sm font-medium">{nameOf(a.user_id)}</p>
+            <Card key={a.id} className="p-3 flex justify-between items-center gap-2">
+              <div className="min-w-0">
+                <p className="text-sm font-medium truncate">{nameOf(a.user_id)}</p>
                 <p className="text-xs text-muted-foreground">{MONTHS_ES[a.month - 1]} {a.year} · {chName(a.channel_id)}</p>
               </div>
-              <div className="text-right">
+              <div className="text-right shrink-0">
                 <p className="text-sm font-bold">{formatUSD(Number(a.amount))}</p>
                 <Badge variant={a.status === "confirmado" ? "default" : "secondary"}>{a.status}</Badge>
               </div>
+              <Button size="sm" variant="ghost" className="text-destructive shrink-0" onClick={() => { if (window.confirm("¿Eliminar este aporte?")) deleteContrib.mutate(a.id); }}>
+                <Trash2 className="h-3 w-3" />
+              </Button>
             </Card>
           ))}
         </TabsContent>
@@ -189,7 +202,7 @@ export function AdminAportes() {
   );
 }
 
-function CeldaAporte({ profile, year, month, existing, aporteMes, channels, chName, cls, onSave }: any) {
+function CeldaAporte({ profile, year, month, existing, aporteMes, channels, chName, cls, onSave, onDelete }: any) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(String(existing?.amount ?? aporteMes));
   const [channelId, setChannelId] = useState(existing?.channel_id ?? channels[0]?.id ?? "");
@@ -217,6 +230,11 @@ function CeldaAporte({ profile, year, month, existing, aporteMes, channels, chNa
           <Button className="w-full" onClick={() => { onSave({ amount: Number(amount), channel_id: channelId || null }); setOpen(false); }}>
             {existing ? "Actualizar y confirmar" : "Registrar y confirmar"}
           </Button>
+          {existing && onDelete && (
+            <Button variant="destructive" className="w-full" onClick={() => { if (window.confirm("¿Eliminar este aporte?")) { onDelete(); setOpen(false); } }}>
+              Eliminar aporte
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
