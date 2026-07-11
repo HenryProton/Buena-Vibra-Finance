@@ -202,7 +202,7 @@ export function AdminAportes() {
   );
 }
 
-function CeldaAporte({ profile, year, month, existing, aporteMes, channels, chName, cls, onSave }: any) {
+function CeldaAporte({ profile, year, month, existing, aporteMes, channels, chName, cls, onSave, onDelete }: any) {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(String(existing?.amount ?? aporteMes));
   const [channelId, setChannelId] = useState(existing?.channel_id ?? channels[0]?.id ?? "");
@@ -230,6 +230,11 @@ function CeldaAporte({ profile, year, month, existing, aporteMes, channels, chNa
           <Button className="w-full" onClick={() => { onSave({ amount: Number(amount), channel_id: channelId || null }); setOpen(false); }}>
             {existing ? "Actualizar y confirmar" : "Registrar y confirmar"}
           </Button>
+          {existing && onDelete && (
+            <Button variant="destructive" className="w-full" onClick={() => { if (window.confirm("¿Eliminar este aporte?")) { onDelete(); setOpen(false); } }}>
+              Eliminar aporte
+            </Button>
+          )}
         </div>
       </DialogContent>
     </Dialog>
