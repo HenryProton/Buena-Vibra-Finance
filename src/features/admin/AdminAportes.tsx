@@ -191,7 +191,7 @@ export function AdminAportes() {
                 <p className="text-sm font-bold">{formatUSD(Number(a.amount))}</p>
                 <Badge variant={a.status === "confirmado" ? "default" : "secondary"}>{a.status}</Badge>
               </div>
-              <Button size="sm" variant="ghost" className="text-destructive shrink-0" onClick={() => { if (confirm("¿Eliminar este aporte?")) deleteContrib.mutate(a.id); }}>
+              <Button size="sm" variant="ghost" className="text-destructive shrink-0" onClick={() => { if (window.confirm("¿Eliminar este aporte?")) deleteContrib.mutate(a.id); }}>
                 <Trash2 className="h-3 w-3" />
               </Button>
             </Card>
