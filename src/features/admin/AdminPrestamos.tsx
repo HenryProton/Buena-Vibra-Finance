@@ -128,7 +128,7 @@ export function AdminPrestamos() {
               <LoanAdminCard key={l.id} loan={l} pays={(data?.pays ?? []).filter((p) => p.loan_id === l.id)} channels={channels} chName={chName}
                 adminId={user!.id} onChanged={invalidate}
                 onDelete={() => { if (confirm("¿Eliminar este préstamo y todos sus abonos?")) deleteLoan.mutate(l.id); }}
-                onUpdate={(patch) => updateLoan.mutate({ id: l.id, patch })}
+                onUpdate={(patch: any) => updateLoan.mutate({ id: l.id, patch })}
               />
             ))}
           </div>
@@ -143,7 +143,7 @@ export function AdminPrestamos() {
             <LoanAdminCard key={l.id} loan={l} pays={(data?.pays ?? []).filter((p) => p.loan_id === l.id)} channels={channels} chName={chName}
               adminId={user!.id} onChanged={invalidate}
               onDelete={() => { if (confirm("¿Eliminar este préstamo y todos sus abonos?")) deleteLoan.mutate(l.id); }}
-              onUpdate={(patch) => updateLoan.mutate({ id: l.id, patch })}
+              onUpdate={(patch: any) => updateLoan.mutate({ id: l.id, patch })}
               nameOf={nameOf}
               consolidatedTarget={historicos.find((x) => x.id === l.consolidated_into) || (data?.loans ?? []).find((x) => x.id === l.consolidated_into)}
             />
