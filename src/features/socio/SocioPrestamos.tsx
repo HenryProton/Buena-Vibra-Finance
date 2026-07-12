@@ -65,17 +65,17 @@ export function SocioPrestamos() {
   const activos = loans.filter((l) => l.status === "activo");
   let totalDeuda = 0;
   activos.forEach((l) => {
-    const mine = payments.filter((p) => p.loan_id === l.id && p.status === "confirmado");
+    const mine = payments.filter((p) => p.loan_id === l.id);
     const d = projectDebt({
       principal: Number(l.principal),
       rateType: l.rate_type as RateType,
       rateValue: Number(l.rate_value),
       startDate: l.disbursed_at ?? l.approved_at ?? l.created_at,
-      paidCapital: mine.reduce((a, p) => a + Number(p.amount_capital), 0),
-      paidInterest: mine.reduce((a, p) => a + Number(p.amount_interest), 0),
+      payments: mine,
     });
     totalDeuda += d.total;
   });
+
 
   return (
     <div className="space-y-4">
