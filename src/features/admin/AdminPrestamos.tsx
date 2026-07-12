@@ -76,9 +76,16 @@ export function AdminPrestamos() {
 
   const activosByUser = useMemo(() => {
     const m: Record<string, any[]> = {};
-    for (const l of activos) (m[l.user_id] ??= []).push(l);
+    // Orden cronológico ascendente por fecha de desembolso dentro de cada socio
+    const sorted = [...activos].sort((a, b) => {
+      const da = new Date(a.disbursed_at ?? a.approved_at ?? a.created_at).getTime();
+      const db = new Date(b.disbursed_at ?? b.approved_at ?? b.created_at).getTime();
+      return da - db;
+    });
+    for (const l of sorted) (m[l.user_id] ??= []).push(l);
     return m;
   }, [activos]);
+
 
   return (
     <div className="space-y-4">
