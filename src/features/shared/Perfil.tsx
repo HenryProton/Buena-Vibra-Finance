@@ -81,12 +81,16 @@ export function Perfil() {
 
       <Card className="p-4 space-y-3">
         <h3 className="font-semibold">Apariencia</h3>
+        <p className="text-xs text-muted-foreground">Escoge cómo se ve la app.</p>
         <div className="grid grid-cols-3 gap-2">
           <ThemeBtn active={theme === "system"} onClick={() => setTheme("system")} icon={<MonitorSmartphone className="h-4 w-4" />} label="Sistema" />
           <ThemeBtn active={theme === "light"} onClick={() => setTheme("light")} icon={<Sun className="h-4 w-4" />} label="Claro" />
           <ThemeBtn active={theme === "dark"} onClick={() => setTheme("dark")} icon={<Moon className="h-4 w-4" />} label="Oscuro" />
+          <ThemeBtn active={theme === "vibrant"} onClick={() => setTheme("vibrant")} icon={<Sparkles className="h-4 w-4" />} label="Vibrante" />
+          <ThemeBtn active={theme === "senior"} onClick={() => setTheme("senior")} icon={<Accessibility className="h-4 w-4" />} label="Adulto mayor" />
         </div>
       </Card>
+
 
       <Card className="p-4 space-y-2">
         <h3 className="font-semibold">Cuenta</h3>
