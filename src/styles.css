@@ -154,3 +154,113 @@ a[href*="lovable.app"][target="_blank"] {
   opacity: 0 !important;
   pointer-events: none !important;
 }
+
+/* ======= Animaciones globales tipo botón 3D ======= */
+button, [role="button"], a.btn, [data-slot="button"] {
+  transition: transform 0.12s cubic-bezier(.2,.9,.3,1.2),
+              box-shadow 0.15s ease,
+              filter 0.15s ease,
+              background-color 0.15s ease;
+  will-change: transform;
+}
+button:hover:not(:disabled), [role="button"]:hover:not(:disabled), [data-slot="button"]:hover:not(:disabled) {
+  filter: brightness(1.05);
+  box-shadow: 0 4px 12px -4px color-mix(in oklab, var(--color-primary) 40%, transparent);
+}
+button:active:not(:disabled), [role="button"]:active:not(:disabled), [data-slot="button"]:active:not(:disabled) {
+  transform: translateY(2px) scale(0.97);
+  box-shadow: 0 1px 2px color-mix(in oklab, var(--color-primary) 25%, transparent) inset;
+  filter: brightness(0.95);
+}
+
+@keyframes bv-pop-in {
+  0% { opacity: 0; transform: translateY(6px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+[data-slot="card"], .bv-card {
+  animation: bv-pop-in 0.35s ease-out both;
+}
+
+/* ======= Tema VIBRANTE (colorido y dinámico) ======= */
+.theme-vibrant {
+  --background: oklch(0.98 0.02 300);
+  --foreground: oklch(0.16 0.05 280);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.05 280);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.05 280);
+  --primary: oklch(0.65 0.28 320);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.9 0.15 200);
+  --secondary-foreground: oklch(0.15 0.05 280);
+  --muted: oklch(0.94 0.05 300);
+  --muted-foreground: oklch(0.45 0.05 300);
+  --accent: oklch(0.75 0.22 60);
+  --accent-foreground: oklch(0.15 0.05 60);
+  --destructive: oklch(0.62 0.26 25);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.85 0.08 300);
+  --input: oklch(0.9 0.08 300);
+  --ring: oklch(0.65 0.28 320);
+  --radius: 1rem;
+}
+.theme-vibrant [data-slot="card"], .theme-vibrant .bv-card {
+  background: linear-gradient(135deg, var(--card) 0%, color-mix(in oklab, var(--primary) 8%, var(--card)) 100%);
+  box-shadow: 0 8px 24px -12px color-mix(in oklab, var(--primary) 40%, transparent);
+}
+.theme-vibrant button:not(:disabled)[data-slot="button"],
+.theme-vibrant [data-slot="button"]:not([data-variant="ghost"]):not([data-variant="outline"]) {
+  background-image: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+}
+.theme-vibrant h1, .theme-vibrant h2, .theme-vibrant h3 {
+  background: linear-gradient(90deg, var(--primary), var(--accent));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ======= Tema SENIOR (adulto mayor / baja visión) ======= */
+.theme-senior {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.1 0 0);
+  --card: oklch(0.99 0 0);
+  --card-foreground: oklch(0.1 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.1 0 0);
+  --primary: oklch(0.35 0.2 250);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.95 0 0);
+  --secondary-foreground: oklch(0.1 0 0);
+  --muted: oklch(0.95 0 0);
+  --muted-foreground: oklch(0.25 0 0);
+  --accent: oklch(0.55 0.24 40);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.45 0.28 25);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.25 0 0);
+  --input: oklch(0.35 0 0);
+  --ring: oklch(0.35 0.2 250);
+  --radius: 0.5rem;
+  font-size: 18px;
+}
+.theme-senior body { font-size: 1.125rem; line-height: 1.7; }
+.theme-senior h1 { font-size: 2rem; font-weight: 800; }
+.theme-senior h2 { font-size: 1.6rem; font-weight: 800; }
+.theme-senior h3 { font-size: 1.35rem; font-weight: 700; }
+.theme-senior [data-slot="card"] { border-width: 2px; }
+.theme-senior [data-slot="button"] {
+  min-height: 3rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border-width: 2px;
+}
+.theme-senior input, .theme-senior textarea, .theme-senior select, .theme-senior [data-slot="select-trigger"] {
+  min-height: 3rem;
+  font-size: 1.05rem;
+  border-width: 2px !important;
+}
+.theme-senior label { font-size: 1rem; font-weight: 600; }
+.theme-senior .text-xs { font-size: 0.95rem !important; }
+.theme-senior .text-sm { font-size: 1rem !important; }
+.theme-senior .text-\[10px\], .theme-senior .text-\[11px\] { font-size: 0.9rem !important; }
+
