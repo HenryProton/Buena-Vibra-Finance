@@ -110,6 +110,45 @@ export function SocioAportes() {
         </p>
       </Card>
 
+      <Card className="p-4 space-y-3 animate-fade-in">
+        <h3 className="font-semibold text-sm flex items-center gap-2"><BarChart3 className="h-4 w-4" />Aportes mes a mes</h3>
+        <div className="w-full h-52">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={cycle.map((c) => {
+              const key = `${c.year}-${c.month}`;
+              const paid = confirmadosSet.has(key);
+              const reported = reportadosSet.has(key);
+              const past = isPast(c.year, c.month);
+              const status = paid ? "pagado" : reported ? "reportado" : past ? "pendiente" : "futuro";
+              return { label: `${MONTHS_ES[c.month - 1].slice(0, 3)}\n${String(c.year).slice(2)}`, monto: aporteMes, status };
+            })} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} />
+              <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v}`} width={40} />
+              <Tooltip
+                contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                formatter={(v: number, _n, ctx: any) => [formatUSD(v), ctx.payload.status]}
+              />
+              <Bar dataKey="monto" radius={[4, 4, 0, 0]}>
+                {cycle.map((c) => {
+                  const key = `${c.year}-${c.month}`;
+                  const color = confirmadosSet.has(key) ? "hsl(var(--primary))"
+                    : reportadosSet.has(key) ? "hsl(45 93% 55%)"
+                    : isPast(c.year, c.month) ? "hsl(var(--destructive))"
+                    : "hsl(var(--muted-foreground) / 0.35)";
+                  return <Cell key={key} fill={color} />;
+                })}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-primary" />Pagado</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: "hsl(45 93% 55%)" }} />Reportado</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-destructive" />Pendiente</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-muted-foreground/40" />Por venir</span>
+        </div>
+      </Card>
+
       <Card className="p-4 space-y-3">
         <h3 className="font-semibold text-sm">Calendario</h3>
         <div className="grid grid-cols-4 gap-2">
