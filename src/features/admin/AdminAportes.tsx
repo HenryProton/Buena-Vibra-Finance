@@ -181,26 +181,87 @@ export function AdminAportes() {
         </TabsContent>
 
         <TabsContent value="historial" className="mt-3 space-y-2">
-          {(data?.contribs ?? []).filter((a) => a.status !== "reportado").map((a) => (
-            <Card key={a.id} className="p-3 flex justify-between items-center gap-2">
-              <div className="min-w-0">
-                <p className="text-sm font-medium truncate">{nameOf(a.user_id)}</p>
-                <p className="text-xs text-muted-foreground">{MONTHS_ES[a.month - 1]} {a.year} · {chName(a.channel_id)}</p>
-              </div>
-              <div className="text-right shrink-0">
-                <p className="text-sm font-bold">{formatUSD(Number(a.amount))}</p>
-                <Badge variant={a.status === "confirmado" ? "default" : "secondary"}>{a.status}</Badge>
-              </div>
-              <Button size="sm" variant="ghost" className="text-destructive shrink-0" onClick={() => { if (window.confirm("¿Eliminar este aporte?")) deleteContrib.mutate(a.id); }}>
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </Card>
-          ))}
+          <HistorialAportes
+            contribs={(data?.contribs ?? []).filter((a) => a.status !== "reportado")}
+            nameOf={nameOf}
+            chName={chName}
+            onDelete={(id) => { if (window.confirm("¿Eliminar este aporte?")) deleteContrib.mutate(id); }}
+          />
         </TabsContent>
       </Tabs>
     </div>
   );
 }
+
+function HistorialAportes({ contribs, nameOf, chName, onDelete }: { contribs: any[]; nameOf: (u: string) => string; chName: (id?: string | null) => string; onDelete: (id: string) => void }) {
+  // Agrupar: socio → año-mes → canal
+  const bySocio: Record<string, any[]> = {};
+  for (const c of contribs) (bySocio[c.user_id] ??= []).push(c);
+
+  const socioIds = Object.keys(bySocio).sort((a, b) => nameOf(a).localeCompare(nameOf(b)));
+
+  if (socioIds.length === 0) return <p className="text-sm text-muted-foreground text-center py-6">Sin historial.</p>;
+
+  return (
+    <div className="space-y-2">
+      {socioIds.map((uid) => {
+        const rows = bySocio[uid];
+        const total = rows.filter((r) => r.status === "confirmado").reduce((a, r) => a + Number(r.amount), 0);
+        // Agrupar por año-mes
+        const byMonth: Record<string, any[]> = {};
+        for (const r of rows) {
+          const k = `${r.year}-${String(r.month).padStart(2, "0")}`;
+          (byMonth[k] ??= []).push(r);
+        }
+        const months = Object.keys(byMonth).sort().reverse();
+        return (
+          <details key={uid} className="rounded-lg border border-border bg-card">
+            <summary className="cursor-pointer p-3 flex justify-between items-center">
+              <span className="font-semibold">{nameOf(uid)}</span>
+              <span className="text-sm text-muted-foreground">{rows.length} aporte(s) · <b className="text-foreground">{formatUSD(total)}</b></span>
+            </summary>
+            <div className="border-t border-border divide-y divide-border">
+              {months.map((mk) => {
+                const list = byMonth[mk];
+                const [y, m] = mk.split("-");
+                // sub-grupo por canal
+                const byCh: Record<string, any[]> = {};
+                for (const r of list) (byCh[r.channel_id ?? "sin-canal"] ??= []).push(r);
+                const chSum = list.reduce((a, r) => a + Number(r.amount), 0);
+                return (
+                  <div key={mk} className="p-3 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">{MONTHS_ES[Number(m) - 1]} {y}</span>
+                      <span className="text-muted-foreground">{formatUSD(chSum)}</span>
+                    </div>
+                    {Object.entries(byCh).map(([chId, items]) => (
+                      <div key={chId} className="pl-2 border-l-2 border-primary/40 space-y-1">
+                        <p className="text-xs font-medium text-primary">{chName(chId === "sin-canal" ? null : chId)}</p>
+                        {items.map((a) => (
+                          <div key={a.id} className="flex justify-between items-center text-xs">
+                            <span>{new Date(a.confirmed_at ?? a.created_at).toLocaleDateString("es-VE")}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold">{formatUSD(Number(a.amount))}</span>
+                              <Badge variant={a.status === "confirmado" ? "default" : "secondary"} className="text-[10px]">{a.status}</Badge>
+                              <Button size="sm" variant="ghost" className="h-6 px-1 text-destructive" onClick={() => onDelete(a.id)}>
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </details>
+        );
+      })}
+    </div>
+  );
+}
+
 
 function CeldaAporte({ profile, year, month, existing, aporteMes, channels, chName, cls, onSave, onDelete }: any) {
   const [open, setOpen] = useState(false);
