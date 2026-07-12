@@ -119,8 +119,9 @@ function LoanCard({ loan, payments, channels, userId, onChanged }: { loan: any; 
   const paidInt = confirmed.reduce((a, p) => a + Number(p.amount_interest), 0);
   const start = loan.disbursed_at ?? loan.approved_at ?? loan.created_at;
   const d = loan.status === "activo"
-    ? projectDebt({ principal: Number(loan.principal), rateType: loan.rate_type as RateType, rateValue: Number(loan.rate_value), startDate: start, paidCapital: paidCap, paidInterest: paidInt })
+    ? projectDebt({ principal: Number(loan.principal), rateType: loan.rate_type as RateType, rateValue: Number(loan.rate_value), startDate: start, payments: confirmed })
     : { capital: 0, interes: 0, total: 0, days: 0 };
+
   const chName = (id?: string | null) => channels.find((c) => c.id === id)?.nombre ?? "—";
 
   const reportar = async (v: { capital: number; interes: number; note: string; channel_id: string | null }) => {
