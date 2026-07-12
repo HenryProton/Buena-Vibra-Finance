@@ -22,6 +22,7 @@ export function SocioAportes() {
   const uid = user!.id;
   const qc = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [selectedBar, setSelectedBar] = useState<string | null>(null);
   const { data: settings } = useCajaSettings();
   const { data: channels = [] } = useChannels(true);
 
