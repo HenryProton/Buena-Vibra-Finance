@@ -110,44 +110,97 @@ export function SocioAportes() {
         </p>
       </Card>
 
-      <Card className="p-4 space-y-3 animate-fade-in">
-        <h3 className="font-semibold text-sm flex items-center gap-2"><BarChart3 className="h-4 w-4" />Aportes mes a mes</h3>
-        <div className="w-full h-52">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={cycle.map((c) => {
-              const key = `${c.year}-${c.month}`;
-              const paid = confirmadosSet.has(key);
-              const reported = reportadosSet.has(key);
-              const past = isPast(c.year, c.month);
-              const status = paid ? "pagado" : reported ? "reportado" : past ? "pendiente" : "futuro";
-              return { label: `${MONTHS_ES[c.month - 1].slice(0, 3)}\n${String(c.year).slice(2)}`, monto: aporteMes, status };
-            })} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-              <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} />
-              <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v}`} width={40} />
-              <Tooltip
-                contentStyle={{ fontSize: 12, borderRadius: 8 }}
-                formatter={(v: number, _n, ctx: any) => [formatUSD(v), ctx.payload.status]}
-              />
-              <Bar dataKey="monto" radius={[4, 4, 0, 0]}>
-                {cycle.map((c) => {
-                  const key = `${c.year}-${c.month}`;
-                  const color = confirmadosSet.has(key) ? "hsl(var(--primary))"
-                    : reportadosSet.has(key) ? "hsl(45 93% 55%)"
-                    : isPast(c.year, c.month) ? "hsl(var(--destructive))"
-                    : "hsl(var(--muted-foreground) / 0.35)";
-                  return <Cell key={key} fill={color} />;
-                })}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-primary" />Pagado</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: "hsl(45 93% 55%)" }} />Reportado</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-destructive" />Pendiente</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-muted-foreground/40" />Por venir</span>
-        </div>
-      </Card>
+      {(() => {
+        const chartData = cycle.map((c) => {
+          const key = `${c.year}-${c.month}`;
+          const paid = confirmadosSet.has(key);
+          const reported = reportadosSet.has(key);
+          const past = isPast(c.year, c.month);
+          const status: "pagado" | "reportado" | "pendiente" | "futuro" = paid ? "pagado" : reported ? "reportado" : past ? "pendiente" : "futuro";
+          const aporte = aportes.find((a) => a.year === c.year && a.month === c.month);
+          return {
+            key,
+            label: `${MONTHS_ES[c.month - 1].slice(0, 3)} ${String(c.year).slice(2)}`,
+            fullLabel: `${MONTHS_ES[c.month - 1]} ${c.year}`,
+            monto: aporteMes,
+            status,
+            amountRegistered: aporte?.amount ?? null,
+            note: aporte?.note ?? null,
+            reportedAt: aporte?.reported_at ?? null,
+          };
+        });
+        const statusMeta: Record<string, { label: string; color: string; badge: string }> = {
+          pagado: { label: "Pagado ✅", color: "hsl(var(--primary))", badge: "bg-primary/15 text-primary border-primary/40" },
+          reportado: { label: "Reportado ⏳", color: "hsl(45 93% 55%)", badge: "bg-amber-500/15 text-amber-600 border-amber-500/40" },
+          pendiente: { label: "Pendiente ⚠️", color: "hsl(var(--destructive))", badge: "bg-destructive/15 text-destructive border-destructive/40" },
+          futuro: { label: "Por venir", color: "hsl(var(--muted-foreground) / 0.35)", badge: "bg-muted text-muted-foreground border-border" },
+        };
+        const CustomTooltip = ({ active, payload }: any) => {
+          if (!active || !payload?.length) return null;
+          const p = payload[0].payload;
+          const meta = statusMeta[p.status];
+          return (
+            <div className="rounded-lg border bg-background p-2 shadow-md text-xs space-y-1 min-w-[140px]">
+              <p className="font-semibold">{p.fullLabel}</p>
+              <p><span className={`inline-block px-1.5 py-0.5 rounded border text-[10px] ${meta.badge}`}>{meta.label}</span></p>
+              <p className="text-muted-foreground">Aporte: <span className="font-semibold text-foreground">{formatUSD(p.monto)}</span></p>
+              <p className="text-[10px] text-muted-foreground">100% capital · sin interés</p>
+            </div>
+          );
+        };
+        const selected = chartData.find((d) => d.key === selectedBar) ?? null;
+        return (
+          <Card className="p-4 space-y-3 animate-fade-in">
+            <h3 className="font-semibold text-sm flex items-center gap-2"><BarChart3 className="h-4 w-4" />Aportes mes a mes</h3>
+            <p className="text-[11px] text-muted-foreground">Toca una barra para ver el detalle.</p>
+            <div className="w-full h-52">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} />
+                  <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v}`} width={40} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.3)" }} />
+                  <Bar dataKey="monto" radius={[4, 4, 0, 0]} onClick={(d: any) => setSelectedBar(d.key)} cursor="pointer">
+                    {chartData.map((d) => (
+                      <Cell
+                        key={d.key}
+                        fill={statusMeta[d.status].color}
+                        stroke={selectedBar === d.key ? "hsl(var(--foreground))" : "none"}
+                        strokeWidth={selectedBar === d.key ? 2 : 0}
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-primary" />Pagado</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: "hsl(45 93% 55%)" }} />Reportado</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-destructive" />Pendiente</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-muted-foreground/40" />Por venir</span>
+            </div>
+            {selected && (
+              <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2 animate-fade-in">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-sm">{selected.fullLabel}</p>
+                  <Badge variant="outline" className={statusMeta[selected.status].badge}>{statusMeta[selected.status].label}</Badge>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div><p className="text-muted-foreground">Monto del mes</p><p className="font-bold">{formatUSD(selected.monto)}</p></div>
+                  <div><p className="text-muted-foreground">Registrado</p><p className="font-bold">{selected.amountRegistered != null ? formatUSD(Number(selected.amountRegistered)) : "—"}</p></div>
+                  <div><p className="text-muted-foreground">Capital</p><p className="font-bold text-primary">{formatUSD(selected.monto)}</p></div>
+                  <div><p className="text-muted-foreground">Interés</p><p className="font-bold">{formatUSD(0)}</p></div>
+                </div>
+                {selected.reportedAt && (
+                  <p className="text-[11px] text-muted-foreground">Reportado el {new Date(selected.reportedAt).toLocaleDateString("es-VE")}</p>
+                )}
+                {selected.note && <p className="text-[11px] text-muted-foreground italic">"{selected.note}"</p>}
+                <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">Los aportes mensuales son 100% capital para la caja; no generan interés.</p>
+                <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setSelectedBar(null)}>Cerrar detalle</Button>
+              </div>
+            )}
+          </Card>
+        );
+      })()}
 
       <Card className="p-4 space-y-3">
         <h3 className="font-semibold text-sm">Calendario</h3>
