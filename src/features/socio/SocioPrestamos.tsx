@@ -124,7 +124,7 @@ function LoanCard({ loan, payments, channels, userId, onChanged }: { loan: any; 
 
   const chName = (id?: string | null) => channels.find((c) => c.id === id)?.nombre ?? "—";
 
-  const reportar = async (v: { capital: number; interes: number; note: string; channel_id: string | null }) => {
+  const reportar = async (v: { capital: number; interes: number; note: string; channel_id: string | null; payment_date: string }) => {
     const { error } = await supabase.from("loan_payments").insert({
       loan_id: loan.id,
       user_id: userId,
@@ -133,12 +133,14 @@ function LoanCard({ loan, payments, channels, userId, onChanged }: { loan: any; 
       status: "reportado",
       note: v.note,
       channel_id: v.channel_id,
+      payment_date: v.payment_date,
     });
     if (error) return toast.error(error.message);
     toast.success("Pago reportado.");
     setOpenPay(false);
     onChanged();
   };
+
 
   return (
     <Card className="p-4 space-y-3">
