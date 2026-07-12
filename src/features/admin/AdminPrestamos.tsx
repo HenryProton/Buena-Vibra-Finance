@@ -168,15 +168,22 @@ function LoanAdminCard({ loan, pays, channels, chName, adminId, onChanged, onDel
   const paidInt = confirmed.reduce((a: number, p: any) => a + Number(p.amount_interest), 0);
   const start = loan.disbursed_at ?? loan.approved_at ?? loan.created_at;
   const d = loan.status === "activo"
-    ? projectDebt({ principal: Number(loan.principal), rateType: loan.rate_type as RateType, rateValue: Number(loan.rate_value), startDate: start, paidCapital: paidCap, paidInterest: paidInt })
+    ? projectDebt({ principal: Number(loan.principal), rateType: loan.rate_type as RateType, rateValue: Number(loan.rate_value), startDate: start, payments: confirmed })
     : { capital: 0, interes: 0, total: 0, days: 0 };
 
   const statusBadge: Record<string, string> = {
     activo: "bg-primary/20 text-primary",
-    pagado: "bg-emerald-500/20 text-emerald-700",
+    pagado: "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold",
     consolidado: "bg-blue-500/20 text-blue-700",
     rechazado: "bg-destructive/20 text-destructive",
   };
+  const statusLabel: Record<string, string> = {
+    activo: "activo",
+    pagado: "PAGADO ✅",
+    consolidado: "consolidado",
+    rechazado: "rechazado",
+  };
+
 
   return (
     <Card className="p-3 space-y-2">
