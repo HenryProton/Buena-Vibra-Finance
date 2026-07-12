@@ -359,10 +359,9 @@ function ConsolidarDialog({ loans, pays, channels, adminId, onDone }: any) {
 
   const debts = loans.map((l: any) => {
     const confirmed = pays.filter((p: any) => p.loan_id === l.id && p.status === "confirmado");
-    const pc = confirmed.reduce((a: number, p: any) => a + Number(p.amount_capital), 0);
-    const pi = confirmed.reduce((a: number, p: any) => a + Number(p.amount_interest), 0);
-    return { loan: l, debt: projectDebt({ principal: Number(l.principal), rateType: l.rate_type, rateValue: Number(l.rate_value), startDate: l.disbursed_at ?? l.created_at, paidCapital: pc, paidInterest: pi }) };
+    return { loan: l, debt: projectDebt({ principal: Number(l.principal), rateType: l.rate_type, rateValue: Number(l.rate_value), startDate: l.disbursed_at ?? l.created_at, payments: confirmed }) };
   });
+
   const chosenIds = Object.keys(selected).filter((k) => selected[k]);
   const totalCapital = debts.filter((d: any) => selected[d.loan.id]).reduce((a: number, d: any) => a + d.debt.capital, 0);
   const totalInteres = debts.filter((d: any) => selected[d.loan.id]).reduce((a: number, d: any) => a + d.debt.interes, 0);
