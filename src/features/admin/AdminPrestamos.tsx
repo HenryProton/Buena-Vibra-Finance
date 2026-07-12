@@ -507,17 +507,19 @@ function NuevoPrestamoDialog({ profiles, channels, userId, onCreated }: { profil
   const [rateValue, setRateValue] = useState("1");
   const [channelId, setChannelId] = useState(channels[0]?.id ?? "");
   const [note, setNote] = useState("");
+  const [disbursedDate, setDisbursedDate] = useState(new Date().toISOString().slice(0, 10));
   const activos = profiles.filter((p) => p.status === "activo");
 
   const submit = async () => {
     if (!socioId) return toast.error("Elige un socio");
-    const now = new Date().toISOString();
+    const nowIso = new Date().toISOString();
+    const disbursedIso = new Date(disbursedDate).toISOString();
     const dr = rateType === "daily" ? Number(rateValue) / 100 : Number(rateValue) / 100 / 30;
     const { error } = await supabase.from("loans").insert({
       user_id: socioId, principal: Number(principal),
       rate_type: rateType, rate_value: Number(rateValue), daily_rate: dr,
       disbursement_channel_id: channelId || null, status: "activo", note,
-      approved_at: now, approved_by: userId, disbursed_at: now,
+      approved_at: nowIso, approved_by: userId, disbursed_at: disbursedIso,
     });
     if (error) return toast.error(error.message);
     toast.success("Préstamo creado");
@@ -538,6 +540,7 @@ function NuevoPrestamoDialog({ profiles, channels, userId, onCreated }: { profil
             </Select>
           </div>
           <div><Label>Monto (USD)</Label><Input type="number" step="0.01" value={principal} onChange={(e) => setPrincipal(e.target.value)} /></div>
+          <div><Label>Fecha del préstamo</Label><Input type="date" value={disbursedDate} onChange={(e) => setDisbursedDate(e.target.value)} required /></div>
           <div className="grid grid-cols-2 gap-2">
             <div><Label>Tipo tasa</Label>
               <Select value={rateType} onValueChange={(v) => setRateType(v as RateType)}>
@@ -560,6 +563,7 @@ function NuevoPrestamoDialog({ profiles, channels, userId, onCreated }: { profil
     </Dialog>
   );
 }
+
 
 function RegistrarAbonoDialog({ loan, defaultInt, channels, adminId, onDone }: { loan: any; defaultInt: number; channels: any[]; adminId: string; onDone: () => void }) {
   const [open, setOpen] = useState(false);
