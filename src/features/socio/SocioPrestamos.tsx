@@ -65,17 +65,17 @@ export function SocioPrestamos() {
   const activos = loans.filter((l) => l.status === "activo");
   let totalDeuda = 0;
   activos.forEach((l) => {
-    const mine = payments.filter((p) => p.loan_id === l.id && p.status === "confirmado");
+    const mine = payments.filter((p) => p.loan_id === l.id);
     const d = projectDebt({
       principal: Number(l.principal),
       rateType: l.rate_type as RateType,
       rateValue: Number(l.rate_value),
       startDate: l.disbursed_at ?? l.approved_at ?? l.created_at,
-      paidCapital: mine.reduce((a, p) => a + Number(p.amount_capital), 0),
-      paidInterest: mine.reduce((a, p) => a + Number(p.amount_interest), 0),
+      payments: mine,
     });
     totalDeuda += d.total;
   });
+
 
   return (
     <div className="space-y-4">
@@ -119,11 +119,12 @@ function LoanCard({ loan, payments, channels, userId, onChanged }: { loan: any; 
   const paidInt = confirmed.reduce((a, p) => a + Number(p.amount_interest), 0);
   const start = loan.disbursed_at ?? loan.approved_at ?? loan.created_at;
   const d = loan.status === "activo"
-    ? projectDebt({ principal: Number(loan.principal), rateType: loan.rate_type as RateType, rateValue: Number(loan.rate_value), startDate: start, paidCapital: paidCap, paidInterest: paidInt })
+    ? projectDebt({ principal: Number(loan.principal), rateType: loan.rate_type as RateType, rateValue: Number(loan.rate_value), startDate: start, payments: confirmed })
     : { capital: 0, interes: 0, total: 0, days: 0 };
+
   const chName = (id?: string | null) => channels.find((c) => c.id === id)?.nombre ?? "—";
 
-  const reportar = async (v: { capital: number; interes: number; note: string; channel_id: string | null }) => {
+  const reportar = async (v: { capital: number; interes: number; note: string; channel_id: string | null; payment_date: string }) => {
     const { error } = await supabase.from("loan_payments").insert({
       loan_id: loan.id,
       user_id: userId,
@@ -132,12 +133,14 @@ function LoanCard({ loan, payments, channels, userId, onChanged }: { loan: any; 
       status: "reportado",
       note: v.note,
       channel_id: v.channel_id,
+      payment_date: v.payment_date,
     });
     if (error) return toast.error(error.message);
     toast.success("Pago reportado.");
     setOpenPay(false);
     onChanged();
   };
+
 
   return (
     <Card className="p-4 space-y-3">
@@ -251,12 +254,14 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
     pendiente_aprobacion: { label: "Pendiente", cls: "bg-muted text-muted-foreground" },
     activo: { label: "Activo", cls: "bg-primary/20 text-primary" },
-    pagado: { label: "Pagado", cls: "bg-emerald-500/20 text-emerald-600" },
+    pagado: { label: "PAGADO ✅", cls: "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold" },
+    consolidado: { label: "Consolidado", cls: "bg-blue-500/20 text-blue-700" },
     rechazado: { label: "Rechazado", cls: "bg-destructive/20 text-destructive" },
   };
   const s = map[status] ?? { label: status, cls: "" };
   return <Badge className={s.cls}>{s.label}</Badge>;
 }
+
 
 function SolicitudForm({ max, onSubmit, loading }: { max: number; onSubmit: (v: { principal: number; note: string }) => void; loading: boolean }) {
   const [principal, setPrincipal] = useState("");
@@ -277,13 +282,18 @@ function SolicitudForm({ max, onSubmit, loading }: { max: number; onSubmit: (v: 
   );
 }
 
-function AbonoForm({ defaultInt, channels, onSubmit }: { defaultInt: number; channels: any[]; onSubmit: (v: { capital: number; interes: number; note: string; channel_id: string | null }) => void }) {
+function AbonoForm({ defaultInt, channels, onSubmit }: { defaultInt: number; channels: any[]; onSubmit: (v: { capital: number; interes: number; note: string; channel_id: string | null; payment_date: string }) => void }) {
   const [cap, setCap] = useState("0");
   const [intr, setIntr] = useState(defaultInt.toFixed(2));
   const [note, setNote] = useState("");
   const [channelId, setChannelId] = useState(channels[0]?.id ?? "");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ capital: Number(cap), interes: Number(intr), note, channel_id: channelId || null }); }} className="space-y-3">
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ capital: Number(cap), interes: Number(intr), note, channel_id: channelId || null, payment_date: date }); }} className="space-y-3">
+      <div className="space-y-1">
+        <Label>Fecha del pago</Label>
+        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+      </div>
       <div className="space-y-1">
         <Label>Canal</Label>
         <Select value={channelId} onValueChange={setChannelId}>
@@ -306,4 +316,5 @@ function AbonoForm({ defaultInt, channels, onSubmit }: { defaultInt: number; cha
       <Button type="submit" className="w-full">Reportar</Button>
     </form>
   );
+
 }

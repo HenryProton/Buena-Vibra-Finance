@@ -76,9 +76,16 @@ export function AdminPrestamos() {
 
   const activosByUser = useMemo(() => {
     const m: Record<string, any[]> = {};
-    for (const l of activos) (m[l.user_id] ??= []).push(l);
+    // Orden cronológico ascendente por fecha de desembolso dentro de cada socio
+    const sorted = [...activos].sort((a, b) => {
+      const da = new Date(a.disbursed_at ?? a.approved_at ?? a.created_at).getTime();
+      const db = new Date(b.disbursed_at ?? b.approved_at ?? b.created_at).getTime();
+      return da - db;
+    });
+    for (const l of sorted) (m[l.user_id] ??= []).push(l);
     return m;
   }, [activos]);
+
 
   return (
     <div className="space-y-4">
@@ -150,9 +157,70 @@ export function AdminPrestamos() {
           ))}
         </section>
       )}
+
+      <HistorialAbonos pays={(data?.pays ?? []).filter((p) => p.status === "confirmado")} nameOf={nameOf} chName={chName} />
     </div>
   );
 }
+
+function HistorialAbonos({ pays, nameOf, chName }: { pays: any[]; nameOf: (u: string) => string; chName: (id?: string | null) => string }) {
+  if (pays.length === 0) return null;
+  const bySocio: Record<string, any[]> = {};
+  for (const p of pays) (bySocio[p.user_id] ??= []).push(p);
+  const socioIds = Object.keys(bySocio).sort((a, b) => nameOf(a).localeCompare(nameOf(b)));
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-semibold text-muted-foreground">Historial de abonos</h3>
+      {socioIds.map((uid) => {
+        const rows = [...bySocio[uid]].sort((a, b) => new Date(b.payment_date || b.reported_at).getTime() - new Date(a.payment_date || a.reported_at).getTime());
+        const total = rows.reduce((a, r) => a + Number(r.amount_capital) + Number(r.amount_interest), 0);
+        // agrupar por fecha (YYYY-MM-DD)
+        const byDate: Record<string, any[]> = {};
+        for (const r of rows) {
+          const k = (r.payment_date || r.reported_at || "").slice(0, 10);
+          (byDate[k] ??= []).push(r);
+        }
+        const dates = Object.keys(byDate).sort().reverse();
+        return (
+          <details key={uid} className="rounded-lg border border-border bg-card">
+            <summary className="cursor-pointer p-3 flex justify-between items-center">
+              <span className="font-semibold">{nameOf(uid)}</span>
+              <span className="text-sm text-muted-foreground">{rows.length} abono(s) · <b className="text-foreground">{formatUSD(total)}</b></span>
+            </summary>
+            <div className="border-t border-border divide-y divide-border">
+              {dates.map((dk) => {
+                const list = byDate[dk];
+                const byCh: Record<string, any[]> = {};
+                for (const r of list) (byCh[r.channel_id ?? "sin-canal"] ??= []).push(r);
+                const dayTotal = list.reduce((a, r) => a + Number(r.amount_capital) + Number(r.amount_interest), 0);
+                return (
+                  <div key={dk} className="p-3 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">{dk ? new Date(dk).toLocaleDateString("es-VE") : "Sin fecha"}</span>
+                      <span className="text-muted-foreground">{formatUSD(dayTotal)}</span>
+                    </div>
+                    {Object.entries(byCh).map(([chId, items]) => (
+                      <div key={chId} className="pl-2 border-l-2 border-primary/40 space-y-1">
+                        <p className="text-xs font-medium text-primary">{chName(chId === "sin-canal" ? null : chId)}</p>
+                        {items.map((p) => (
+                          <div key={p.id} className="flex justify-between text-xs">
+                            <span>Cap {formatUSD(Number(p.amount_capital))} · Int {formatUSD(Number(p.amount_interest))}</span>
+                            <span className="font-semibold">{formatUSD(Number(p.amount_capital) + Number(p.amount_interest))}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </details>
+        );
+      })}
+    </section>
+  );
+}
+
 
 function LoanAdminCard({ loan, pays, channels, chName, adminId, onChanged, onDelete, onUpdate, nameOf, consolidatedTarget }: any) {
   const [open, setOpen] = useState(false);
@@ -161,15 +229,22 @@ function LoanAdminCard({ loan, pays, channels, chName, adminId, onChanged, onDel
   const paidInt = confirmed.reduce((a: number, p: any) => a + Number(p.amount_interest), 0);
   const start = loan.disbursed_at ?? loan.approved_at ?? loan.created_at;
   const d = loan.status === "activo"
-    ? projectDebt({ principal: Number(loan.principal), rateType: loan.rate_type as RateType, rateValue: Number(loan.rate_value), startDate: start, paidCapital: paidCap, paidInterest: paidInt })
+    ? projectDebt({ principal: Number(loan.principal), rateType: loan.rate_type as RateType, rateValue: Number(loan.rate_value), startDate: start, payments: confirmed })
     : { capital: 0, interes: 0, total: 0, days: 0 };
 
   const statusBadge: Record<string, string> = {
     activo: "bg-primary/20 text-primary",
-    pagado: "bg-emerald-500/20 text-emerald-700",
+    pagado: "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold",
     consolidado: "bg-blue-500/20 text-blue-700",
     rechazado: "bg-destructive/20 text-destructive",
   };
+  const statusLabel: Record<string, string> = {
+    activo: "activo",
+    pagado: "PAGADO ✅",
+    consolidado: "consolidado",
+    rechazado: "rechazado",
+  };
+
 
   return (
     <Card className="p-3 space-y-2">
@@ -182,7 +257,7 @@ function LoanAdminCard({ loan, pays, channels, chName, adminId, onChanged, onDel
               <p className="text-[11px] text-muted-foreground">{rateLabel(loan.rate_type as RateType, Number(loan.rate_value))} · {new Date(start).toLocaleDateString("es-VE")}</p>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className={statusBadge[loan.status] ?? ""}>{loan.status}</Badge>
+              <Badge className={statusBadge[loan.status] ?? ""}>{statusLabel[loan.status] ?? loan.status}</Badge>
               <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
             </div>
           </div>
@@ -345,10 +420,9 @@ function ConsolidarDialog({ loans, pays, channels, adminId, onDone }: any) {
 
   const debts = loans.map((l: any) => {
     const confirmed = pays.filter((p: any) => p.loan_id === l.id && p.status === "confirmado");
-    const pc = confirmed.reduce((a: number, p: any) => a + Number(p.amount_capital), 0);
-    const pi = confirmed.reduce((a: number, p: any) => a + Number(p.amount_interest), 0);
-    return { loan: l, debt: projectDebt({ principal: Number(l.principal), rateType: l.rate_type, rateValue: Number(l.rate_value), startDate: l.disbursed_at ?? l.created_at, paidCapital: pc, paidInterest: pi }) };
+    return { loan: l, debt: projectDebt({ principal: Number(l.principal), rateType: l.rate_type, rateValue: Number(l.rate_value), startDate: l.disbursed_at ?? l.created_at, payments: confirmed }) };
   });
+
   const chosenIds = Object.keys(selected).filter((k) => selected[k]);
   const totalCapital = debts.filter((d: any) => selected[d.loan.id]).reduce((a: number, d: any) => a + d.debt.capital, 0);
   const totalInteres = debts.filter((d: any) => selected[d.loan.id]).reduce((a: number, d: any) => a + d.debt.interes, 0);
@@ -493,17 +567,19 @@ function NuevoPrestamoDialog({ profiles, channels, userId, onCreated }: { profil
   const [rateValue, setRateValue] = useState("1");
   const [channelId, setChannelId] = useState(channels[0]?.id ?? "");
   const [note, setNote] = useState("");
+  const [disbursedDate, setDisbursedDate] = useState(new Date().toISOString().slice(0, 10));
   const activos = profiles.filter((p) => p.status === "activo");
 
   const submit = async () => {
     if (!socioId) return toast.error("Elige un socio");
-    const now = new Date().toISOString();
+    const nowIso = new Date().toISOString();
+    const disbursedIso = new Date(disbursedDate).toISOString();
     const dr = rateType === "daily" ? Number(rateValue) / 100 : Number(rateValue) / 100 / 30;
     const { error } = await supabase.from("loans").insert({
       user_id: socioId, principal: Number(principal),
       rate_type: rateType, rate_value: Number(rateValue), daily_rate: dr,
       disbursement_channel_id: channelId || null, status: "activo", note,
-      approved_at: now, approved_by: userId, disbursed_at: now,
+      approved_at: nowIso, approved_by: userId, disbursed_at: disbursedIso,
     });
     if (error) return toast.error(error.message);
     toast.success("Préstamo creado");
@@ -524,6 +600,7 @@ function NuevoPrestamoDialog({ profiles, channels, userId, onCreated }: { profil
             </Select>
           </div>
           <div><Label>Monto (USD)</Label><Input type="number" step="0.01" value={principal} onChange={(e) => setPrincipal(e.target.value)} /></div>
+          <div><Label>Fecha del préstamo</Label><Input type="date" value={disbursedDate} onChange={(e) => setDisbursedDate(e.target.value)} required /></div>
           <div className="grid grid-cols-2 gap-2">
             <div><Label>Tipo tasa</Label>
               <Select value={rateType} onValueChange={(v) => setRateType(v as RateType)}>
@@ -547,12 +624,14 @@ function NuevoPrestamoDialog({ profiles, channels, userId, onCreated }: { profil
   );
 }
 
+
 function RegistrarAbonoDialog({ loan, defaultInt, channels, adminId, onDone }: { loan: any; defaultInt: number; channels: any[]; adminId: string; onDone: () => void }) {
   const [open, setOpen] = useState(false);
   const [cap, setCap] = useState("0");
   const [intr, setIntr] = useState(defaultInt.toFixed(2));
   const [channelId, setChannelId] = useState(channels[0]?.id ?? "");
   const [note, setNote] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
 
   const submit = async () => {
     const now = new Date().toISOString();
@@ -560,20 +639,37 @@ function RegistrarAbonoDialog({ loan, defaultInt, channels, adminId, onDone }: {
       loan_id: loan.id, user_id: loan.user_id,
       amount_capital: Number(cap), amount_interest: Number(intr),
       channel_id: channelId || null, note,
+      payment_date: date,
       status: "confirmado", confirmed_at: now, confirmed_by: adminId,
     });
     if (error) return toast.error(error.message);
-    toast.success("Abono registrado");
+
+    // Auto-marcar pagado si queda saldado
+    const { data: allPays } = await supabase.from("loan_payments").select("*").eq("loan_id", loan.id).eq("status", "confirmado");
+    const d = projectDebt({
+      principal: Number(loan.principal),
+      rateType: loan.rate_type as RateType,
+      rateValue: Number(loan.rate_value),
+      startDate: loan.disbursed_at ?? loan.approved_at ?? loan.created_at,
+      payments: allPays ?? [],
+    });
+    if (d.capital < 0.01 && d.interes < 0.01) {
+      await supabase.from("loans").update({ status: "pagado" }).eq("id", loan.id);
+      toast.success("Préstamo PAGADO ✅");
+    } else {
+      toast.success("Abono registrado");
+    }
     setOpen(false); setCap("0"); setNote("");
     onDone();
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) setIntr(defaultInt.toFixed(2)); }}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) { setIntr(defaultInt.toFixed(2)); setDate(new Date().toISOString().slice(0, 10)); } }}>
       <DialogTrigger asChild><Button size="sm">Registrar abono</Button></DialogTrigger>
       <DialogContent>
         <DialogHeader><DialogTitle>Registrar abono (admin)</DialogTitle></DialogHeader>
         <div className="space-y-3">
+          <div><Label>Fecha del pago</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></div>
           <div><Label>Canal</Label>
             <Select value={channelId} onValueChange={setChannelId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -589,3 +685,4 @@ function RegistrarAbonoDialog({ loan, defaultInt, channels, adminId, onDone }: {
     </Dialog>
   );
 }
+
