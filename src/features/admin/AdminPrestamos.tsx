@@ -157,9 +157,70 @@ export function AdminPrestamos() {
           ))}
         </section>
       )}
+
+      <HistorialAbonos pays={(data?.pays ?? []).filter((p) => p.status === "confirmado")} nameOf={nameOf} chName={chName} />
     </div>
   );
 }
+
+function HistorialAbonos({ pays, nameOf, chName }: { pays: any[]; nameOf: (u: string) => string; chName: (id?: string | null) => string }) {
+  if (pays.length === 0) return null;
+  const bySocio: Record<string, any[]> = {};
+  for (const p of pays) (bySocio[p.user_id] ??= []).push(p);
+  const socioIds = Object.keys(bySocio).sort((a, b) => nameOf(a).localeCompare(nameOf(b)));
+  return (
+    <section className="space-y-2">
+      <h3 className="text-sm font-semibold text-muted-foreground">Historial de abonos</h3>
+      {socioIds.map((uid) => {
+        const rows = [...bySocio[uid]].sort((a, b) => new Date(b.payment_date || b.reported_at).getTime() - new Date(a.payment_date || a.reported_at).getTime());
+        const total = rows.reduce((a, r) => a + Number(r.amount_capital) + Number(r.amount_interest), 0);
+        // agrupar por fecha (YYYY-MM-DD)
+        const byDate: Record<string, any[]> = {};
+        for (const r of rows) {
+          const k = (r.payment_date || r.reported_at || "").slice(0, 10);
+          (byDate[k] ??= []).push(r);
+        }
+        const dates = Object.keys(byDate).sort().reverse();
+        return (
+          <details key={uid} className="rounded-lg border border-border bg-card">
+            <summary className="cursor-pointer p-3 flex justify-between items-center">
+              <span className="font-semibold">{nameOf(uid)}</span>
+              <span className="text-sm text-muted-foreground">{rows.length} abono(s) · <b className="text-foreground">{formatUSD(total)}</b></span>
+            </summary>
+            <div className="border-t border-border divide-y divide-border">
+              {dates.map((dk) => {
+                const list = byDate[dk];
+                const byCh: Record<string, any[]> = {};
+                for (const r of list) (byCh[r.channel_id ?? "sin-canal"] ??= []).push(r);
+                const dayTotal = list.reduce((a, r) => a + Number(r.amount_capital) + Number(r.amount_interest), 0);
+                return (
+                  <div key={dk} className="p-3 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">{dk ? new Date(dk).toLocaleDateString("es-VE") : "Sin fecha"}</span>
+                      <span className="text-muted-foreground">{formatUSD(dayTotal)}</span>
+                    </div>
+                    {Object.entries(byCh).map(([chId, items]) => (
+                      <div key={chId} className="pl-2 border-l-2 border-primary/40 space-y-1">
+                        <p className="text-xs font-medium text-primary">{chName(chId === "sin-canal" ? null : chId)}</p>
+                        {items.map((p) => (
+                          <div key={p.id} className="flex justify-between text-xs">
+                            <span>Cap {formatUSD(Number(p.amount_capital))} · Int {formatUSD(Number(p.amount_interest))}</span>
+                            <span className="font-semibold">{formatUSD(Number(p.amount_capital) + Number(p.amount_interest))}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </details>
+        );
+      })}
+    </section>
+  );
+}
+
 
 function LoanAdminCard({ loan, pays, channels, chName, adminId, onChanged, onDelete, onUpdate, nameOf, consolidatedTarget }: any) {
   const [open, setOpen] = useState(false);
