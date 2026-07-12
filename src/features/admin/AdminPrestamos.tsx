@@ -567,6 +567,7 @@ function RegistrarAbonoDialog({ loan, defaultInt, channels, adminId, onDone }: {
   const [intr, setIntr] = useState(defaultInt.toFixed(2));
   const [channelId, setChannelId] = useState(channels[0]?.id ?? "");
   const [note, setNote] = useState("");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
 
   const submit = async () => {
     const now = new Date().toISOString();
@@ -574,20 +575,37 @@ function RegistrarAbonoDialog({ loan, defaultInt, channels, adminId, onDone }: {
       loan_id: loan.id, user_id: loan.user_id,
       amount_capital: Number(cap), amount_interest: Number(intr),
       channel_id: channelId || null, note,
+      payment_date: date,
       status: "confirmado", confirmed_at: now, confirmed_by: adminId,
     });
     if (error) return toast.error(error.message);
-    toast.success("Abono registrado");
+
+    // Auto-marcar pagado si queda saldado
+    const { data: allPays } = await supabase.from("loan_payments").select("*").eq("loan_id", loan.id).eq("status", "confirmado");
+    const d = projectDebt({
+      principal: Number(loan.principal),
+      rateType: loan.rate_type as RateType,
+      rateValue: Number(loan.rate_value),
+      startDate: loan.disbursed_at ?? loan.approved_at ?? loan.created_at,
+      payments: allPays ?? [],
+    });
+    if (d.capital < 0.01 && d.interes < 0.01) {
+      await supabase.from("loans").update({ status: "pagado" }).eq("id", loan.id);
+      toast.success("Préstamo PAGADO ✅");
+    } else {
+      toast.success("Abono registrado");
+    }
     setOpen(false); setCap("0"); setNote("");
     onDone();
   };
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) setIntr(defaultInt.toFixed(2)); }}>
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) { setIntr(defaultInt.toFixed(2)); setDate(new Date().toISOString().slice(0, 10)); } }}>
       <DialogTrigger asChild><Button size="sm">Registrar abono</Button></DialogTrigger>
       <DialogContent>
         <DialogHeader><DialogTitle>Registrar abono (admin)</DialogTitle></DialogHeader>
         <div className="space-y-3">
+          <div><Label>Fecha del pago</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></div>
           <div><Label>Canal</Label>
             <Select value={channelId} onValueChange={setChannelId}>
               <SelectTrigger><SelectValue /></SelectTrigger>
@@ -603,3 +621,4 @@ function RegistrarAbonoDialog({ loan, defaultInt, channels, adminId, onDone }: {
     </Dialog>
   );
 }
+
