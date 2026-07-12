@@ -280,13 +280,18 @@ function SolicitudForm({ max, onSubmit, loading }: { max: number; onSubmit: (v: 
   );
 }
 
-function AbonoForm({ defaultInt, channels, onSubmit }: { defaultInt: number; channels: any[]; onSubmit: (v: { capital: number; interes: number; note: string; channel_id: string | null }) => void }) {
+function AbonoForm({ defaultInt, channels, onSubmit }: { defaultInt: number; channels: any[]; onSubmit: (v: { capital: number; interes: number; note: string; channel_id: string | null; payment_date: string }) => void }) {
   const [cap, setCap] = useState("0");
   const [intr, setIntr] = useState(defaultInt.toFixed(2));
   const [note, setNote] = useState("");
   const [channelId, setChannelId] = useState(channels[0]?.id ?? "");
+  const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ capital: Number(cap), interes: Number(intr), note, channel_id: channelId || null }); }} className="space-y-3">
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ capital: Number(cap), interes: Number(intr), note, channel_id: channelId || null, payment_date: date }); }} className="space-y-3">
+      <div className="space-y-1">
+        <Label>Fecha del pago</Label>
+        <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+      </div>
       <div className="space-y-1">
         <Label>Canal</Label>
         <Select value={channelId} onValueChange={setChannelId}>
@@ -309,4 +314,5 @@ function AbonoForm({ defaultInt, channels, onSubmit }: { defaultInt: number; cha
       <Button type="submit" className="w-full">Reportar</Button>
     </form>
   );
+
 }
