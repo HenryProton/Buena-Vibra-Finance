@@ -13,8 +13,9 @@ import { Progress } from "@/components/ui/progress";
 import { formatUSD, MONTHS_ES } from "@/lib/format";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, Clock, AlertCircle } from "lucide-react";
+import { Check, Clock, AlertCircle, BarChart3 } from "lucide-react";
 import { useCajaSettings, useChannels } from "@/lib/queries";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 export function SocioAportes() {
   const { user, profile } = useAuth();
