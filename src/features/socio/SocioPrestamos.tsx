@@ -254,12 +254,14 @@ function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
     pendiente_aprobacion: { label: "Pendiente", cls: "bg-muted text-muted-foreground" },
     activo: { label: "Activo", cls: "bg-primary/20 text-primary" },
-    pagado: { label: "Pagado", cls: "bg-emerald-500/20 text-emerald-600" },
+    pagado: { label: "PAGADO ✅", cls: "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 font-bold" },
+    consolidado: { label: "Consolidado", cls: "bg-blue-500/20 text-blue-700" },
     rechazado: { label: "Rechazado", cls: "bg-destructive/20 text-destructive" },
   };
   const s = map[status] ?? { label: status, cls: "" };
   return <Badge className={s.cls}>{s.label}</Badge>;
 }
+
 
 function SolicitudForm({ max, onSubmit, loading }: { max: number; onSubmit: (v: { principal: number; note: string }) => void; loading: boolean }) {
   const [principal, setPrincipal] = useState("");
