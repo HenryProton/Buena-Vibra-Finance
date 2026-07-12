@@ -196,7 +196,7 @@ function LoanAdminCard({ loan, pays, channels, chName, adminId, onChanged, onDel
               <p className="text-[11px] text-muted-foreground">{rateLabel(loan.rate_type as RateType, Number(loan.rate_value))} · {new Date(start).toLocaleDateString("es-VE")}</p>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className={statusBadge[loan.status] ?? ""}>{loan.status}</Badge>
+              <Badge className={statusBadge[loan.status] ?? ""}>{statusLabel[loan.status] ?? loan.status}</Badge>
               <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
             </div>
           </div>
