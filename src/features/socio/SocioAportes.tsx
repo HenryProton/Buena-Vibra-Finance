@@ -175,7 +175,7 @@ export function SocioAportes() {
             </div>
             <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-primary" />Pagado</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: "hsl(45 93% 55%)" }} />Reportado</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: "oklch(0.75 0.17 75)" }} />Reportado</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-destructive" />Pendiente</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-muted-foreground/40" />Por venir</span>
             </div>
