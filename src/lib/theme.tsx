@@ -62,6 +62,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("bv-theme", t);
     setThemeState(t);
     setResolved(apply(t));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("bv-theme-change", { detail: t }));
+    }
   };
 
   return <ThemeContext.Provider value={{ theme, setTheme, resolved }}>{children}</ThemeContext.Provider>;
