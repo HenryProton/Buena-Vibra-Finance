@@ -157,15 +157,15 @@ export function SocioAportes() {
             <div className="w-full h-52">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} />
-                  <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v}`} width={40} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.3)" }} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} interval={0} axisLine={{ stroke: "var(--border)" }} tickLine={{ stroke: "var(--border)" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} tickFormatter={(v) => `$${v}`} width={40} axisLine={{ stroke: "var(--border)" }} tickLine={{ stroke: "var(--border)" }} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "color-mix(in oklab, var(--muted-foreground) 15%, transparent)" }} />
                   <Bar dataKey="monto" radius={[4, 4, 0, 0]} onClick={(d: any) => setSelectedBar(d.key)} cursor="pointer">
                     {chartData.map((d) => (
                       <Cell
                         key={d.key}
                         fill={statusMeta[d.status].color}
-                        stroke={selectedBar === d.key ? "hsl(var(--foreground))" : "none"}
+                        stroke={selectedBar === d.key ? "var(--foreground)" : "none"}
                         strokeWidth={selectedBar === d.key ? 2 : 0}
                       />
                     ))}
