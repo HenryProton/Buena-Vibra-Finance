@@ -131,10 +131,10 @@ export function SocioAportes() {
           };
         });
         const statusMeta: Record<string, { label: string; color: string; badge: string }> = {
-          pagado: { label: "Pagado ✅", color: "hsl(var(--primary))", badge: "bg-primary/15 text-primary border-primary/40" },
-          reportado: { label: "Reportado ⏳", color: "hsl(45 93% 55%)", badge: "bg-amber-500/15 text-amber-600 border-amber-500/40" },
-          pendiente: { label: "Pendiente ⚠️", color: "hsl(var(--destructive))", badge: "bg-destructive/15 text-destructive border-destructive/40" },
-          futuro: { label: "Por venir", color: "hsl(var(--muted-foreground) / 0.35)", badge: "bg-muted text-muted-foreground border-border" },
+          pagado: { label: "Pagado ✅", color: "var(--primary)", badge: "bg-primary/15 text-primary border-primary/40" },
+          reportado: { label: "Reportado ⏳", color: "oklch(0.75 0.17 75)", badge: "bg-amber-500/15 text-amber-600 border-amber-500/40" },
+          pendiente: { label: "Pendiente ⚠️", color: "var(--destructive)", badge: "bg-destructive/15 text-destructive border-destructive/40" },
+          futuro: { label: "Por venir", color: "color-mix(in oklab, var(--muted-foreground) 40%, transparent)", badge: "bg-muted text-muted-foreground border-border" },
         };
         const CustomTooltip = ({ active, payload }: any) => {
           if (!active || !payload?.length) return null;
@@ -157,15 +157,15 @@ export function SocioAportes() {
             <div className="w-full h-52">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <XAxis dataKey="label" tick={{ fontSize: 10 }} interval={0} />
-                  <YAxis tick={{ fontSize: 10 }} tickFormatter={(v) => `$${v}`} width={40} />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(var(--muted) / 0.3)" }} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} interval={0} axisLine={{ stroke: "var(--border)" }} tickLine={{ stroke: "var(--border)" }} />
+                  <YAxis tick={{ fontSize: 10, fill: "var(--muted-foreground)" }} tickFormatter={(v) => `$${v}`} width={40} axisLine={{ stroke: "var(--border)" }} tickLine={{ stroke: "var(--border)" }} />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: "color-mix(in oklab, var(--muted-foreground) 15%, transparent)" }} />
                   <Bar dataKey="monto" radius={[4, 4, 0, 0]} onClick={(d: any) => setSelectedBar(d.key)} cursor="pointer">
                     {chartData.map((d) => (
                       <Cell
                         key={d.key}
                         fill={statusMeta[d.status].color}
-                        stroke={selectedBar === d.key ? "hsl(var(--foreground))" : "none"}
+                        stroke={selectedBar === d.key ? "var(--foreground)" : "none"}
                         strokeWidth={selectedBar === d.key ? 2 : 0}
                       />
                     ))}
@@ -175,7 +175,7 @@ export function SocioAportes() {
             </div>
             <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground">
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-primary" />Pagado</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: "hsl(45 93% 55%)" }} />Reportado</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: "oklch(0.75 0.17 75)" }} />Reportado</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-destructive" />Pendiente</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-muted-foreground/40" />Por venir</span>
             </div>

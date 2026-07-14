@@ -114,8 +114,8 @@
   --accent-foreground: oklch(0.96 0.01 85);
   --destructive: oklch(0.62 0.2 22);
   --destructive-foreground: oklch(0.98 0 0);
-  --border: oklch(1 0 0 / 12%);
-  --input: oklch(1 0 0 / 15%);
+  --border: oklch(1 0 0 / 18%);
+  --input: oklch(1 0 0 / 22%);
   --ring: oklch(0.82 0.17 82);
   --chart-1: oklch(0.82 0.17 82);
   --chart-2: oklch(0.65 0.16 45);
@@ -128,7 +128,7 @@
   --sidebar-primary-foreground: oklch(0.14 0.01 60);
   --sidebar-accent: oklch(0.26 0.02 60);
   --sidebar-accent-foreground: oklch(0.96 0.01 85);
-  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-border: oklch(1 0 0 / 18%);
   --sidebar-ring: oklch(0.82 0.17 82);
 }
 
@@ -202,6 +202,11 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled), [data-slot=
   --border: oklch(0.85 0.08 300);
   --input: oklch(0.9 0.08 300);
   --ring: oklch(0.65 0.28 320);
+  --chart-1: oklch(0.65 0.28 320);
+  --chart-2: oklch(0.75 0.22 60);
+  --chart-3: oklch(0.7 0.2 200);
+  --chart-4: oklch(0.72 0.22 140);
+  --chart-5: oklch(0.62 0.26 25);
   --radius: 1rem;
 }
 .theme-vibrant [data-slot="card"], .theme-vibrant .bv-card {
@@ -240,8 +245,17 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled), [data-slot=
   --border: oklch(0.25 0 0);
   --input: oklch(0.35 0 0);
   --ring: oklch(0.35 0.2 250);
+  --chart-1: oklch(0.35 0.2 250);
+  --chart-2: oklch(0.55 0.24 40);
+  --chart-3: oklch(0.4 0.22 160);
+  --chart-4: oklch(0.45 0.28 25);
+  --chart-5: oklch(0.3 0.15 300);
   --radius: 0.5rem;
   font-size: 18px;
+}
+.theme-senior *:focus-visible {
+  outline: 3px solid var(--ring) !important;
+  outline-offset: 2px !important;
 }
 .theme-senior body { font-size: 1.125rem; line-height: 1.7; }
 .theme-senior h1 { font-size: 2rem; font-weight: 800; }
