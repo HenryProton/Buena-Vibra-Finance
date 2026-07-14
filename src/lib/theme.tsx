@@ -37,7 +37,25 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       if ((localStorage.getItem("bv-theme") ?? "system") === "system") setResolved(apply("system"));
     };
     mq.addEventListener("change", onChange);
-    return () => mq.removeEventListener("change", onChange);
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== "bv-theme") return;
+      const next = (e.newValue as Theme | null) ?? "system";
+      setThemeState(next);
+      setResolved(apply(next));
+    };
+    window.addEventListener("storage", onStorage);
+    const onCustom = (e: Event) => {
+      const next = (e as CustomEvent<Theme>).detail;
+      if (!next) return;
+      setThemeState(next);
+      setResolved(apply(next));
+    };
+    window.addEventListener("bv-theme-change", onCustom as EventListener);
+    return () => {
+      mq.removeEventListener("change", onChange);
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener("bv-theme-change", onCustom as EventListener);
+    };
   }, []);
 
   const setTheme = (t: Theme) => {
