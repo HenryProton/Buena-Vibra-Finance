@@ -245,8 +245,17 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled), [data-slot=
   --border: oklch(0.25 0 0);
   --input: oklch(0.35 0 0);
   --ring: oklch(0.35 0.2 250);
+  --chart-1: oklch(0.35 0.2 250);
+  --chart-2: oklch(0.55 0.24 40);
+  --chart-3: oklch(0.4 0.22 160);
+  --chart-4: oklch(0.45 0.28 25);
+  --chart-5: oklch(0.3 0.15 300);
   --radius: 0.5rem;
   font-size: 18px;
+}
+.theme-senior *:focus-visible {
+  outline: 3px solid var(--ring) !important;
+  outline-offset: 2px !important;
 }
 .theme-senior body { font-size: 1.125rem; line-height: 1.7; }
 .theme-senior h1 { font-size: 2rem; font-weight: 800; }
