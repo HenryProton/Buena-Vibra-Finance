@@ -131,10 +131,10 @@ export function SocioAportes() {
           };
         });
         const statusMeta: Record<string, { label: string; color: string; badge: string }> = {
-          pagado: { label: "Pagado ✅", color: "hsl(var(--primary))", badge: "bg-primary/15 text-primary border-primary/40" },
-          reportado: { label: "Reportado ⏳", color: "hsl(45 93% 55%)", badge: "bg-amber-500/15 text-amber-600 border-amber-500/40" },
-          pendiente: { label: "Pendiente ⚠️", color: "hsl(var(--destructive))", badge: "bg-destructive/15 text-destructive border-destructive/40" },
-          futuro: { label: "Por venir", color: "hsl(var(--muted-foreground) / 0.35)", badge: "bg-muted text-muted-foreground border-border" },
+          pagado: { label: "Pagado ✅", color: "var(--primary)", badge: "bg-primary/15 text-primary border-primary/40" },
+          reportado: { label: "Reportado ⏳", color: "oklch(0.75 0.17 75)", badge: "bg-amber-500/15 text-amber-600 border-amber-500/40" },
+          pendiente: { label: "Pendiente ⚠️", color: "var(--destructive)", badge: "bg-destructive/15 text-destructive border-destructive/40" },
+          futuro: { label: "Por venir", color: "color-mix(in oklab, var(--muted-foreground) 40%, transparent)", badge: "bg-muted text-muted-foreground border-border" },
         };
         const CustomTooltip = ({ active, payload }: any) => {
           if (!active || !payload?.length) return null;
