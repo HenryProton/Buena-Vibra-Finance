@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import logo from "@/assets/logo.jpg";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { redeemInvitation } from "@/lib/invitations.functions";
+import { redeemInvitation, lookupInvitation } from "@/lib/invitations.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -29,6 +29,7 @@ function AuthPage() {
   const [invite, setInvite] = useState<any>(null);
   const [tab, setTab] = useState<"login" | "signup">("login");
   const redeem = useServerFn(redeemInvitation);
+  const lookup = useServerFn(lookupInvitation);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -40,9 +41,13 @@ function AuthPage() {
       setInviteCode(code);
       setTab("signup");
       (async () => {
-        const { data } = await supabase.from("invitations" as any).select("*").eq("code", code).maybeSingle();
-        if (data) setInvite(data);
-        else toast.error("Invitación no válida o expirada");
+        try {
+          const data = await lookup({ data: { code } });
+          if (data) setInvite(data);
+          else toast.error("Invitación no válida o expirada");
+        } catch {
+          toast.error("Invitación no válida o expirada");
+        }
       })();
     }
   }, [navigate]);
@@ -151,9 +156,13 @@ function AuthPage() {
                       onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                       onBlur={async () => {
                         if (!inviteCode) return;
-                        const { data } = await supabase.from("invitations" as any).select("*").eq("code", inviteCode).maybeSingle();
-                        if (data) setInvite(data);
-                        else toast.error("Código no válido o expirado");
+                        try {
+                          const data = await lookup({ data: { code: inviteCode } });
+                          if (data) setInvite(data);
+                          else toast.error("Código no válido o expirado");
+                        } catch {
+                          toast.error("Código no válido o expirado");
+                        }
                       }}
                       placeholder="Ej: A3F9K2LM"
                     />
