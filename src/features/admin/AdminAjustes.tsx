@@ -111,10 +111,11 @@ function ChannelRow({ channel, onUpdate, onDelete }: { channel: any; onUpdate: (
   const { data: saldo } = useQuery({
     queryKey: ["channel-balance", channel.id],
     queryFn: async () => {
-      const { data } = await supabase.rpc("channel_balance", { _channel_id: channel.id });
-      return Number(data ?? 0);
+      const { getChannelBalance } = await import("@/lib/channels.functions");
+      return await getChannelBalance({ data: { channelId: channel.id } });
     },
   });
+
   return (
     <div className="flex items-center gap-2 py-2 border-b border-border last:border-0">
       <Input value={nombre} onChange={(e) => setNombre(e.target.value)} onBlur={() => nombre !== channel.nombre && onUpdate({ nombre })} className="h-8 text-sm flex-1" />
