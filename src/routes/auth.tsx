@@ -41,9 +41,13 @@ function AuthPage() {
       setInviteCode(code);
       setTab("signup");
       (async () => {
-        const { data } = await supabase.from("invitations" as any).select("*").eq("code", code).maybeSingle();
-        if (data) setInvite(data);
-        else toast.error("Invitación no válida o expirada");
+        try {
+          const data = await lookup({ data: { code } });
+          if (data) setInvite(data);
+          else toast.error("Invitación no válida o expirada");
+        } catch {
+          toast.error("Invitación no válida o expirada");
+        }
       })();
     }
   }, [navigate]);
