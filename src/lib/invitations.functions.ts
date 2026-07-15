@@ -106,3 +106,27 @@ export const redeemInvitation = createServerFn({ method: "POST" })
 
     return { ok: true };
   });
+
+// Public (unauthenticated) lookup by exact code — used on the signup screen to
+// prefill the invited user's name. Returns only the invitation matching the
+// exact code, and only if it is still pendiente and not expired.
+export const lookupInvitation = createServerFn({ method: "POST" })
+  .inputValidator((input: { code: string }) => {
+    if (!input.code?.trim()) throw new Error("Código requerido");
+    const code = input.code.trim().toUpperCase();
+    if (!/^[A-Z0-9]{4,16}$/.test(code)) throw new Error("Código inválido");
+    return { code };
+  })
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: inv, error } = await supabaseAdmin
+      .from("invitations" as any)
+      .select("code, full_name, num_acciones, fecha_inicio, fecha_fin, expires_at, status")
+      .eq("code", data.code)
+      .eq("status", "pendiente")
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+    if (error) return null;
+    return inv ?? null;
+  });
+
