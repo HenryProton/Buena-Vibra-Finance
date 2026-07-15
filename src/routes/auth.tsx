@@ -156,9 +156,13 @@ function AuthPage() {
                       onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
                       onBlur={async () => {
                         if (!inviteCode) return;
-                        const { data } = await supabase.from("invitations" as any).select("*").eq("code", inviteCode).maybeSingle();
-                        if (data) setInvite(data);
-                        else toast.error("Código no válido o expirado");
+                        try {
+                          const data = await lookup({ data: { code: inviteCode } });
+                          if (data) setInvite(data);
+                          else toast.error("Código no válido o expirado");
+                        } catch {
+                          toast.error("Código no válido o expirado");
+                        }
                       }}
                       placeholder="Ej: A3F9K2LM"
                     />
