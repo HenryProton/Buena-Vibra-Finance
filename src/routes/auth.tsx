@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import logo from "@/assets/logo.jpg";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { redeemInvitation } from "@/lib/invitations.functions";
+import { redeemInvitation, lookupInvitation } from "@/lib/invitations.functions";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
