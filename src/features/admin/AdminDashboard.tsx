@@ -98,12 +98,12 @@ export function AdminDashboard() {
         {perChannel.length === 0 && <p className="text-xs text-muted-foreground">No hay canales configurados.</p>}
         <div className="space-y-3">
           {perChannel.map(({ ch, saldo, capRecaudado, intRecaudado, capPorCobrar, intPorCobrar }) => (
-            <div key={ch.id} className="rounded-lg border border-border p-3 space-y-2 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <p className="font-bold">{ch.nombre}</p>
-                <div className="text-right">
-                  <p className="text-[10px] text-muted-foreground uppercase">Saldo disponible</p>
-                  <p className={`font-bold ${saldo < 0 ? "text-destructive" : "text-primary"}`}>{formatUSD(saldo)}</p>
+            <div key={ch.id} className="rounded-lg border border-border p-3 space-y-3 animate-fade-in">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                <p className="font-bold truncate min-w-0">{ch.nombre}</p>
+                <div className="text-right shrink-0">
+                  <p className="text-[10px] text-muted-foreground uppercase leading-tight">Saldo disponible</p>
+                  <p className={`font-bold text-sm whitespace-nowrap ${saldo < 0 ? "text-destructive" : "text-primary"}`}>{formatUSD(saldo)}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
