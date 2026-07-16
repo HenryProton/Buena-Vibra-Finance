@@ -98,12 +98,12 @@ export function AdminDashboard() {
         {perChannel.length === 0 && <p className="text-xs text-muted-foreground">No hay canales configurados.</p>}
         <div className="space-y-3">
           {perChannel.map(({ ch, saldo, capRecaudado, intRecaudado, capPorCobrar, intPorCobrar }) => (
-            <div key={ch.id} className="rounded-lg border border-border p-3 space-y-2 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <p className="font-bold">{ch.nombre}</p>
-                <div className="text-right">
-                  <p className="text-[10px] text-muted-foreground uppercase">Saldo disponible</p>
-                  <p className={`font-bold ${saldo < 0 ? "text-destructive" : "text-primary"}`}>{formatUSD(saldo)}</p>
+            <div key={ch.id} className="rounded-lg border border-border p-3 space-y-3 animate-fade-in">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                <p className="font-bold truncate min-w-0">{ch.nombre}</p>
+                <div className="text-right shrink-0">
+                  <p className="text-[10px] text-muted-foreground uppercase leading-tight">Saldo disponible</p>
+                  <p className={`font-bold text-sm whitespace-nowrap ${saldo < 0 ? "text-destructive" : "text-primary"}`}>{formatUSD(saldo)}</p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
@@ -131,18 +131,21 @@ export function AdminDashboard() {
 
 function StatCard({ icon, label, value, highlight }: { icon: React.ReactNode; label: string; value: string; highlight?: boolean }) {
   return (
-    <Card className={`p-4 space-y-1 animate-fade-in ${highlight ? "border-primary" : ""}`}>
-      <div className="flex items-center gap-2 text-muted-foreground text-xs">{icon}{label}</div>
-      <p className="text-xl font-bold">{value}</p>
+    <Card className={`p-3 space-y-1 animate-fade-in min-w-0 ${highlight ? "border-primary" : ""}`}>
+      <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] leading-tight">
+        <span className="shrink-0">{icon}</span>
+        <span className="truncate">{label}</span>
+      </div>
+      <p className="text-lg font-bold break-words leading-tight">{value}</p>
     </Card>
   );
 }
 
 function MiniStat({ label, value, tone }: { label: string; value: number; tone: "ok" | "warn" }) {
   return (
-    <div className="rounded-md bg-muted/40 p-2">
-      <p className="text-[10px] text-muted-foreground">{label}</p>
-      <p className={`font-semibold ${tone === "warn" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>{formatUSD(value)}</p>
+    <div className="rounded-md bg-muted/40 p-2 min-w-0">
+      <p className="text-[10px] text-muted-foreground leading-tight">{label}</p>
+      <p className={`font-semibold break-words ${tone === "warn" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>{formatUSD(value)}</p>
     </div>
   );
 }
