@@ -131,18 +131,21 @@ export function AdminDashboard() {
 
 function StatCard({ icon, label, value, highlight }: { icon: React.ReactNode; label: string; value: string; highlight?: boolean }) {
   return (
-    <Card className={`p-4 space-y-1 animate-fade-in ${highlight ? "border-primary" : ""}`}>
-      <div className="flex items-center gap-2 text-muted-foreground text-xs">{icon}{label}</div>
-      <p className="text-xl font-bold">{value}</p>
+    <Card className={`p-3 space-y-1 animate-fade-in min-w-0 ${highlight ? "border-primary" : ""}`}>
+      <div className="flex items-center gap-1.5 text-muted-foreground text-[11px] leading-tight">
+        <span className="shrink-0">{icon}</span>
+        <span className="truncate">{label}</span>
+      </div>
+      <p className="text-lg font-bold break-words leading-tight">{value}</p>
     </Card>
   );
 }
 
 function MiniStat({ label, value, tone }: { label: string; value: number; tone: "ok" | "warn" }) {
   return (
-    <div className="rounded-md bg-muted/40 p-2">
-      <p className="text-[10px] text-muted-foreground">{label}</p>
-      <p className={`font-semibold ${tone === "warn" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>{formatUSD(value)}</p>
+    <div className="rounded-md bg-muted/40 p-2 min-w-0">
+      <p className="text-[10px] text-muted-foreground leading-tight">{label}</p>
+      <p className={`font-semibold break-words ${tone === "warn" ? "text-amber-600 dark:text-amber-400" : "text-emerald-600 dark:text-emerald-400"}`}>{formatUSD(value)}</p>
     </div>
   );
 }
