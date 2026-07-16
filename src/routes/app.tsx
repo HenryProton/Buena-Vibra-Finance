@@ -122,8 +122,10 @@ function NavBtn({ active, onClick, icon, label }: { active: boolean; onClick: ()
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center gap-1 py-2.5 text-xs transition-colors ${
-        active ? "text-primary" : "text-muted-foreground"
+      className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+        active
+          ? "bg-primary text-primary-foreground shadow-sm"
+          : "bg-muted/60 text-muted-foreground hover:bg-muted"
       }`}
     >
       {icon}
@@ -131,6 +133,7 @@ function NavBtn({ active, onClick, icon, label }: { active: boolean; onClick: ()
     </button>
   );
 }
+
 
 function PendingAccount() {
   return (
