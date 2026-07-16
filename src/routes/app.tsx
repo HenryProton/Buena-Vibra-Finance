@@ -73,25 +73,26 @@ function AppShell() {
           </div>
         </div>
         <nav className="border-t border-border">
-          <div className="max-w-md mx-auto grid grid-cols-4 md:grid-cols-5">
+          <div className="max-w-md mx-auto flex gap-2 overflow-x-auto px-3 py-2 no-scrollbar">
             {isAdminView ? (
               <>
-                <NavBtn active={adminTab === "dashboard"} onClick={() => setAdminTab("dashboard")} icon={<LayoutDashboard className="h-5 w-5" />} label="Panel" />
-                <NavBtn active={adminTab === "socios"} onClick={() => setAdminTab("socios")} icon={<Users className="h-5 w-5" />} label="Socios" />
-                <NavBtn active={adminTab === "aportes"} onClick={() => setAdminTab("aportes")} icon={<Wallet className="h-5 w-5" />} label="Aportes" />
-                <NavBtn active={adminTab === "prestamos"} onClick={() => setAdminTab("prestamos")} icon={<HandCoins className="h-5 w-5" />} label="Préstamos" />
-                <NavBtn active={adminTab === "perfil"} onClick={() => setAdminTab("perfil")} icon={<User className="h-5 w-5" />} label="Perfil" />
+                <NavBtn active={adminTab === "dashboard"} onClick={() => setAdminTab("dashboard")} icon={<LayoutDashboard className="h-4 w-4" />} label="Panel" />
+                <NavBtn active={adminTab === "socios"} onClick={() => setAdminTab("socios")} icon={<Users className="h-4 w-4" />} label="Socios" />
+                <NavBtn active={adminTab === "aportes"} onClick={() => setAdminTab("aportes")} icon={<Wallet className="h-4 w-4" />} label="Aportes" />
+                <NavBtn active={adminTab === "prestamos"} onClick={() => setAdminTab("prestamos")} icon={<HandCoins className="h-4 w-4" />} label="Préstamos" />
+                <NavBtn active={adminTab === "perfil"} onClick={() => setAdminTab("perfil")} icon={<User className="h-4 w-4" />} label="Perfil" />
               </>
             ) : (
               <>
-                <NavBtn active={socioTab === "inicio"} onClick={() => setSocioTab("inicio")} icon={<Home className="h-5 w-5" />} label="Inicio" />
-                <NavBtn active={socioTab === "aportes"} onClick={() => setSocioTab("aportes")} icon={<Wallet className="h-5 w-5" />} label="Aportes" />
-                <NavBtn active={socioTab === "prestamos"} onClick={() => setSocioTab("prestamos")} icon={<HandCoins className="h-5 w-5" />} label="Préstamos" />
-                <NavBtn active={socioTab === "perfil"} onClick={() => setSocioTab("perfil")} icon={<User className="h-5 w-5" />} label="Perfil" />
+                <NavBtn active={socioTab === "inicio"} onClick={() => setSocioTab("inicio")} icon={<Home className="h-4 w-4" />} label="Inicio" />
+                <NavBtn active={socioTab === "aportes"} onClick={() => setSocioTab("aportes")} icon={<Wallet className="h-4 w-4" />} label="Aportes" />
+                <NavBtn active={socioTab === "prestamos"} onClick={() => setSocioTab("prestamos")} icon={<HandCoins className="h-4 w-4" />} label="Préstamos" />
+                <NavBtn active={socioTab === "perfil"} onClick={() => setSocioTab("perfil")} icon={<User className="h-4 w-4" />} label="Perfil" />
               </>
             )}
           </div>
         </nav>
+
       </header>
 
       <main className="max-w-md mx-auto px-4 py-4">
@@ -121,8 +122,10 @@ function NavBtn({ active, onClick, icon, label }: { active: boolean; onClick: ()
   return (
     <button
       onClick={onClick}
-      className={`flex flex-col items-center gap-1 py-2.5 text-xs transition-colors ${
-        active ? "text-primary" : "text-muted-foreground"
+      className={`flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+        active
+          ? "bg-primary text-primary-foreground shadow-sm"
+          : "bg-muted/60 text-muted-foreground hover:bg-muted"
       }`}
     >
       {icon}
@@ -130,6 +133,7 @@ function NavBtn({ active, onClick, icon, label }: { active: boolean; onClick: ()
     </button>
   );
 }
+
 
 function PendingAccount() {
   return (
