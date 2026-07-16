@@ -61,7 +61,7 @@ function AppShell() {
   const isAdminView = isAdmin;
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background pb-4">
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
         <div className="max-w-md mx-auto px-4 h-14 flex items-center gap-3">
           <img src={logo} alt="logo" className="h-9 w-9 rounded-lg object-cover" />
@@ -72,6 +72,26 @@ function AppShell() {
             </p>
           </div>
         </div>
+        <nav className="border-t border-border">
+          <div className="max-w-md mx-auto grid grid-cols-4 md:grid-cols-5">
+            {isAdminView ? (
+              <>
+                <NavBtn active={adminTab === "dashboard"} onClick={() => setAdminTab("dashboard")} icon={<LayoutDashboard className="h-5 w-5" />} label="Panel" />
+                <NavBtn active={adminTab === "socios"} onClick={() => setAdminTab("socios")} icon={<Users className="h-5 w-5" />} label="Socios" />
+                <NavBtn active={adminTab === "aportes"} onClick={() => setAdminTab("aportes")} icon={<Wallet className="h-5 w-5" />} label="Aportes" />
+                <NavBtn active={adminTab === "prestamos"} onClick={() => setAdminTab("prestamos")} icon={<HandCoins className="h-5 w-5" />} label="Préstamos" />
+                <NavBtn active={adminTab === "perfil"} onClick={() => setAdminTab("perfil")} icon={<User className="h-5 w-5" />} label="Perfil" />
+              </>
+            ) : (
+              <>
+                <NavBtn active={socioTab === "inicio"} onClick={() => setSocioTab("inicio")} icon={<Home className="h-5 w-5" />} label="Inicio" />
+                <NavBtn active={socioTab === "aportes"} onClick={() => setSocioTab("aportes")} icon={<Wallet className="h-5 w-5" />} label="Aportes" />
+                <NavBtn active={socioTab === "prestamos"} onClick={() => setSocioTab("prestamos")} icon={<HandCoins className="h-5 w-5" />} label="Préstamos" />
+                <NavBtn active={socioTab === "perfil"} onClick={() => setSocioTab("perfil")} icon={<User className="h-5 w-5" />} label="Perfil" />
+              </>
+            )}
+          </div>
+        </nav>
       </header>
 
       <main className="max-w-md mx-auto px-4 py-4">
@@ -92,30 +112,10 @@ function AppShell() {
           </>
         )}
       </main>
-
-      <nav className="fixed bottom-0 inset-x-0 z-40 bg-background/95 backdrop-blur border-t border-border">
-        <div className="max-w-md mx-auto grid grid-cols-4 md:grid-cols-5">
-          {isAdminView ? (
-            <>
-              <NavBtn active={adminTab === "dashboard"} onClick={() => setAdminTab("dashboard")} icon={<LayoutDashboard className="h-5 w-5" />} label="Panel" />
-              <NavBtn active={adminTab === "socios"} onClick={() => setAdminTab("socios")} icon={<Users className="h-5 w-5" />} label="Socios" />
-              <NavBtn active={adminTab === "aportes"} onClick={() => setAdminTab("aportes")} icon={<Wallet className="h-5 w-5" />} label="Aportes" />
-              <NavBtn active={adminTab === "prestamos"} onClick={() => setAdminTab("prestamos")} icon={<HandCoins className="h-5 w-5" />} label="Préstamos" />
-              <NavBtn active={adminTab === "perfil"} onClick={() => setAdminTab("perfil")} icon={<User className="h-5 w-5" />} label="Perfil" />
-            </>
-          ) : (
-            <>
-              <NavBtn active={socioTab === "inicio"} onClick={() => setSocioTab("inicio")} icon={<Home className="h-5 w-5" />} label="Inicio" />
-              <NavBtn active={socioTab === "aportes"} onClick={() => setSocioTab("aportes")} icon={<Wallet className="h-5 w-5" />} label="Aportes" />
-              <NavBtn active={socioTab === "prestamos"} onClick={() => setSocioTab("prestamos")} icon={<HandCoins className="h-5 w-5" />} label="Préstamos" />
-              <NavBtn active={socioTab === "perfil"} onClick={() => setSocioTab("perfil")} icon={<User className="h-5 w-5" />} label="Perfil" />
-            </>
-          )}
-        </div>
-      </nav>
     </div>
   );
 }
+
 
 function NavBtn({ active, onClick, icon, label }: { active: boolean; onClick: () => void; icon: React.ReactNode; label: string }) {
   return (
