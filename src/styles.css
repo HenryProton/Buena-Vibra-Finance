@@ -278,3 +278,9 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled), [data-slot=
 .theme-senior .text-sm { font-size: 1rem !important; }
 .theme-senior .text-\[10px\], .theme-senior .text-\[11px\] { font-size: 0.9rem !important; }
 
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar { display: none; }
+}
