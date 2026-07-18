@@ -141,6 +141,82 @@ function NavBtn({ active, onClick, icon, label }: { active: boolean; onClick: ()
   );
 }
 
+function SwipeMain<T extends string>({
+  tabs,
+  active,
+  onChange,
+  children,
+}: {
+  tabs: T[];
+  active: T;
+  onChange: (t: T) => void;
+  children: React.ReactNode;
+}) {
+  const startX = useRef<number | null>(null);
+  const startY = useRef<number | null>(null);
+  const [dx, setDx] = useState(0);
+  const [animating, setAnimating] = useState(false);
+
+  const idx = tabs.indexOf(active);
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (animating) return;
+    startX.current = e.touches[0].clientX;
+    startY.current = e.touches[0].clientY;
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (startX.current == null || startY.current == null) return;
+    const cx = e.touches[0].clientX - startX.current;
+    const cy = e.touches[0].clientY - startY.current;
+    if (Math.abs(cy) > Math.abs(cx)) return;
+    setDx(cx);
+  };
+  const onTouchEnd = () => {
+    if (startX.current == null) return;
+    const threshold = 60;
+    if (dx <= -threshold && idx < tabs.length - 1) {
+      setAnimating(true);
+      setDx(-window.innerWidth);
+      setTimeout(() => {
+        onChange(tabs[idx + 1]);
+        setDx(0);
+        setAnimating(false);
+      }, 180);
+    } else if (dx >= threshold && idx > 0) {
+      setAnimating(true);
+      setDx(window.innerWidth);
+      setTimeout(() => {
+        onChange(tabs[idx - 1]);
+        setDx(0);
+        setAnimating(false);
+      }, 180);
+    } else {
+      setDx(0);
+    }
+    startX.current = null;
+    startY.current = null;
+  };
+
+  return (
+    <main
+      className="max-w-md mx-auto px-4 py-4 touch-pan-y overflow-hidden"
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+    >
+      <div
+        style={{
+          transform: `translateX(${dx}px)`,
+          transition: animating ? "transform 180ms ease-out" : dx === 0 ? "transform 160ms ease-out" : "none",
+          opacity: animating ? 0 : 1,
+        }}
+      >
+        {children}
+      </div>
+    </main>
+  );
+}
+
 
 function PendingAccount() {
   return (
