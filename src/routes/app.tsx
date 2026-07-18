@@ -200,9 +200,10 @@ function SwipeMain<T extends string>({
   return (
     <main
       className="max-w-md mx-auto px-4 py-4 touch-pan-y overflow-hidden"
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
+      onTouchStartCapture={onTouchStart}
+      onTouchMoveCapture={onTouchMove}
+      onTouchEndCapture={onTouchEnd}
+      onTouchCancelCapture={onTouchEnd}
     >
       <div
         style={{
