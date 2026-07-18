@@ -95,7 +95,11 @@ function AppShell() {
 
       </header>
 
-      <main className="max-w-md mx-auto px-4 py-4">
+      <SwipeMain
+        tabs={isAdminView ? ADMIN_TABS : SOCIO_TABS}
+        active={isAdminView ? adminTab : socioTab}
+        onChange={(t) => (isAdminView ? setAdminTab(t as AdminTab) : setSocioTab(t as SocioTab))}
+      >
         {isAdminView ? (
           <>
             {adminTab === "dashboard" && <AdminDashboard />}
@@ -112,7 +116,7 @@ function AppShell() {
             {socioTab === "perfil" && <Perfil />}
           </>
         )}
-      </main>
+      </SwipeMain>
     </div>
   );
 }
