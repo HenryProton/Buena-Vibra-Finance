@@ -22,6 +22,9 @@ export const Route = createFileRoute("/app")({
 type SocioTab = "inicio" | "aportes" | "prestamos" | "perfil";
 type AdminTab = "dashboard" | "socios" | "aportes" | "prestamos" | "perfil";
 
+const SOCIO_TABS: SocioTab[] = ["inicio", "aportes", "prestamos", "perfil"];
+const ADMIN_TABS: AdminTab[] = ["dashboard", "socios", "aportes", "prestamos", "perfil"];
+
 function AppShell() {
   const { user, profile, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
