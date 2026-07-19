@@ -36,23 +36,30 @@ export function LoanSimulator({ scope, userId }: { scope: Scope; userId?: string
 }
 
 function SimNuevo() {
+  const today = new Date().toISOString().slice(0, 10);
+  const in30 = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
   const [monto, setMonto] = useState("100");
   const [rateType, setRateType] = useState<RateType>("monthly");
   const [rateValue, setRateValue] = useState("20");
-  const [dias, setDias] = useState("30");
+  const [fechaInicio, setFechaInicio] = useState(today);
+  const [fechaFin, setFechaFin] = useState(in30);
 
   const d = useMemo(() => {
     const principal = Number(monto) || 0;
     const rv = Number(rateValue) || 0;
-    const days = Number(dias) || 0;
+    const start = new Date(fechaInicio);
+    const end = new Date(fechaFin);
+    const totalDays = Math.max(0, Math.floor((end.getTime() - start.getTime()) / 86400000));
+    // Anchor startDate so (now - startDate) equals totalDays; extraDays=0.
+    const anchoredStart = new Date(Date.now() - totalDays * 86400000);
     return projectDebt({
       principal,
       rateType,
       rateValue: rv,
-      startDate: new Date(),
-      extraDays: days,
+      startDate: anchoredStart,
+      extraDays: 0,
     });
-  }, [monto, rateType, rateValue, dias]);
+  }, [monto, rateType, rateValue, fechaInicio, fechaFin]);
 
   return (
     <div className="space-y-3">
@@ -62,8 +69,8 @@ function SimNuevo() {
           <Input type="number" step="0.01" value={monto} onChange={(e) => setMonto(e.target.value)} />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Días</Label>
-          <Input type="number" min={0} value={dias} onChange={(e) => setDias(e.target.value)} />
+          <Label className="text-xs">Tasa (%)</Label>
+          <Input type="number" step="0.01" value={rateValue} onChange={(e) => setRateValue(e.target.value)} />
         </div>
         <div className="space-y-1">
           <Label className="text-xs">Tipo de tasa</Label>
@@ -76,11 +83,20 @@ function SimNuevo() {
           </Select>
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Tasa (%)</Label>
-          <Input type="number" step="0.01" value={rateValue} onChange={(e) => setRateValue(e.target.value)} />
+          <Label className="text-xs">Fecha del préstamo</Label>
+          <Input type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} />
+        </div>
+        <div className="space-y-1 col-span-2">
+          <Label className="text-xs">Fecha de pago</Label>
+          <Input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} />
         </div>
       </div>
-      <ResultBox capital={d.capital} interes={d.interes} total={d.total} note={`${rateLabel(rateType, Number(rateValue) || 0)} · ${d.days} días`} />
+      <ResultBox
+        capital={d.capital}
+        interes={d.interes}
+        total={d.total}
+        note={`${rateLabel(rateType, Number(rateValue) || 0)} · ${d.days} días (${new Date(fechaInicio).toLocaleDateString("es-VE")} → ${new Date(fechaFin).toLocaleDateString("es-VE")})`}
+      />
     </div>
   );
 }
