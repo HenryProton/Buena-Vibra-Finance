@@ -16,6 +16,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { ChevronDown, Calculator } from "lucide-react";
 import { useCajaSettings, useChannels } from "@/lib/queries";
+import { LoanSimulator } from "@/components/LoanSimulator";
 
 export function SocioPrestamos() {
   const { user, profile } = useAuth();
