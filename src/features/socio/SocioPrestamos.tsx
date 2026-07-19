@@ -96,7 +96,10 @@ export function SocioPrestamos() {
         <p className="text-2xl font-bold">{formatUSD(totalDeuda)}</p>
       </Card>
 
+      <LoanSimulator scope="mine" userId={uid} />
+
       <Card className="p-3 text-xs text-muted-foreground">
+
         Máximo autorizado: <strong>{formatUSD(maxLoan)}</strong> (10× tu aporte mensual)
       </Card>
 
