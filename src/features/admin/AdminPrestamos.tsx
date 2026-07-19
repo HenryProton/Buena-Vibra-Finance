@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useChannels } from "@/lib/queries";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, ChevronDown, Pencil, Trash2, Merge } from "lucide-react";
+import { LoanSimulator } from "@/components/LoanSimulator";
 
 export function AdminPrestamos() {
   const qc = useQueryClient();
@@ -93,6 +94,10 @@ export function AdminPrestamos() {
         <h2 className="text-lg font-bold">Préstamos</h2>
         <NuevoPrestamoDialog profiles={data?.profiles ?? []} channels={channels} userId={user!.id} onCreated={invalidate} />
       </div>
+
+      <LoanSimulator scope="all" />
+
+
 
       {pendientes.length > 0 && (
         <section className="space-y-2">
