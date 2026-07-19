@@ -95,6 +95,10 @@ export function AdminPrestamos() {
         <NuevoPrestamoDialog profiles={data?.profiles ?? []} channels={channels} userId={user!.id} onCreated={invalidate} />
       </div>
 
+      <LoanSimulator scope="all" />
+
+
+
       {pendientes.length > 0 && (
         <section className="space-y-2">
           <h3 className="text-sm font-semibold text-primary">Solicitudes ({pendientes.length})</h3>
