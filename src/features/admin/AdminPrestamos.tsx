@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useChannels } from "@/lib/queries";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, ChevronDown, Pencil, Trash2, Merge } from "lucide-react";
+import { LoanSimulator } from "@/components/LoanSimulator";
 
 export function AdminPrestamos() {
   const qc = useQueryClient();
