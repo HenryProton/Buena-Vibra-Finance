@@ -76,10 +76,10 @@ export function ChannelStatement({
   const buildText = () => {
     const l: string[] = [`ESTADO DE CUENTA — ${channel.nombre}`, ""];
     l.push("RECIBIÓ (entradas):");
-    entradas.forEach((r) => l.push(`  ${fmtDate(r.fecha)} · ${r.socio} · ${r.concepto} · ${formatUSD(r.monto)}`));
+    entradas.forEach((r) => l.push(`  • ${formatUSD(r.monto)} — ${fmtDate(r.fecha)} — de ${r.socio} — ${r.concepto}`));
     l.push(`  TOTAL RECIBIDO: ${formatUSD(totalEntradas)}`, "");
     l.push("ENTREGÓ (salidas):");
-    salidas.forEach((r) => l.push(`  ${fmtDate(r.fecha)} · ${r.socio} · ${r.concepto} · ${formatUSD(r.monto)}`));
+    salidas.forEach((r) => l.push(`  • ${formatUSD(r.monto)} — ${fmtDate(r.fecha)} — a ${r.socio} — ${r.concepto}`));
     l.push(`  TOTAL ENTREGADO: ${formatUSD(totalSalidas)}`, "");
     l.push(`SALDO QUE DEBE TENER: ${formatUSD(saldo)}`);
     return l.join("\n");
