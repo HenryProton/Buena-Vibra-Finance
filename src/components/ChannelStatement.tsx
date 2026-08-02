@@ -48,8 +48,8 @@ export function ChannelStatement({
         const cap = Number(p.amount_capital) || 0;
         const int = Number(p.amount_interest) || 0;
         const fecha = (p.payment_date ?? p.confirmed_at ?? p.reported_at ?? "").slice(0, 10);
-        if (cap > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Abono a capital", tipo: "entrada", monto: cap });
-        if (int > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Pago de interés", tipo: "entrada", monto: int });
+        if (cap > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Pago de préstamo — abono a capital", tipo: "entrada", monto: cap });
+        if (int > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Pago de préstamo — intereses", tipo: "entrada", monto: int });
       });
     loans
       .filter((l) => l.disbursement_channel_id === channel.id && ["activo", "pagado"].includes(l.status))
@@ -76,10 +76,10 @@ export function ChannelStatement({
   const buildText = () => {
     const l: string[] = [`ESTADO DE CUENTA — ${channel.nombre}`, ""];
     l.push("RECIBIÓ (entradas):");
-    entradas.forEach((r) => l.push(`  ${fmtDate(r.fecha)} · ${r.socio} · ${r.concepto} · ${formatUSD(r.monto)}`));
+    entradas.forEach((r) => l.push(`  • ${formatUSD(r.monto)} — ${fmtDate(r.fecha)} — de ${r.socio} — ${r.concepto}`));
     l.push(`  TOTAL RECIBIDO: ${formatUSD(totalEntradas)}`, "");
     l.push("ENTREGÓ (salidas):");
-    salidas.forEach((r) => l.push(`  ${fmtDate(r.fecha)} · ${r.socio} · ${r.concepto} · ${formatUSD(r.monto)}`));
+    salidas.forEach((r) => l.push(`  • ${formatUSD(r.monto)} — ${fmtDate(r.fecha)} — a ${r.socio} — ${r.concepto}`));
     l.push(`  TOTAL ENTREGADO: ${formatUSD(totalSalidas)}`, "");
     l.push(`SALDO QUE DEBE TENER: ${formatUSD(saldo)}`);
     return l.join("\n");
@@ -158,12 +158,23 @@ function Section({
       <h4 className="font-semibold text-sm">{title}</h4>
       {rows.length === 0 && <p className="text-xs text-muted-foreground">Sin movimientos.</p>}
       {rows.map((r, i) => (
-        <div key={i} className="flex items-start justify-between gap-2 rounded-md bg-muted/40 p-2 text-xs">
-          <div className="min-w-0">
-            <p className="font-medium truncate">{r.socio}</p>
-            <p className="text-muted-foreground truncate">{r.concepto} · {fmtDate(r.fecha)}</p>
+        <div key={i} className="rounded-md bg-muted/40 p-2 text-xs space-y-1">
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-muted-foreground">Monto</span>
+            <span className={`font-bold whitespace-nowrap ${color}`}>{formatUSD(r.monto)}</span>
           </div>
-          <span className={`font-semibold whitespace-nowrap ${color}`}>{formatUSD(r.monto)}</span>
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-muted-foreground shrink-0">Fecha</span>
+            <span className="font-medium text-right">{fmtDate(r.fecha)}</span>
+          </div>
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-muted-foreground shrink-0">Socio</span>
+            <span className="font-medium text-right min-w-0 break-words">{r.socio}</span>
+          </div>
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-muted-foreground shrink-0">Concepto</span>
+            <span className="text-right min-w-0 break-words">{r.concepto}</span>
+          </div>
         </div>
       ))}
       <div className="flex justify-between text-xs pt-1 border-t border-border">

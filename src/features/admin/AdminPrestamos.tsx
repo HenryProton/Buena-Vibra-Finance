@@ -129,21 +129,18 @@ export function AdminPrestamos() {
       <section className="space-y-3">
         <h3 className="text-sm font-semibold text-muted-foreground">Activos ({activos.length})</h3>
         {Object.entries(activosByUser).map(([uid, loans]) => (
-          <div key={uid} className="space-y-2">
-            <div className="flex items-center justify-between px-1">
-              <p className="text-sm font-semibold">{nameOf(uid)} <span className="text-xs text-muted-foreground">({loans.length})</span></p>
-              {loans.length > 1 && (
-                <ConsolidarDialog loans={loans} pays={data?.pays ?? []} channels={channels} adminId={user!.id} onDone={invalidate} />
-              )}
-            </div>
-            {loans.map((l) => (
-              <LoanAdminCard key={l.id} loan={l} pays={(data?.pays ?? []).filter((p) => p.loan_id === l.id)} channels={channels} chName={chName}
-                adminId={user!.id} onChanged={invalidate}
-                onDelete={() => { if (window.confirm("¿Eliminar este préstamo y todos sus abonos?")) deleteLoan.mutate(l.id); }}
-                onUpdate={(patch: any) => updateLoan.mutate({ id: l.id, patch })}
-              />
-            ))}
-          </div>
+          <SocioLoansGroup
+            key={uid}
+            name={nameOf(uid)}
+            loans={loans}
+            pays={data?.pays ?? []}
+            channels={channels}
+            chName={chName}
+            adminId={user!.id}
+            onChanged={invalidate}
+            onDeleteLoan={(id: string) => { if (window.confirm("¿Eliminar este préstamo y todos sus abonos?")) deleteLoan.mutate(id); }}
+            onUpdateLoan={(id: string, patch: any) => updateLoan.mutate({ id, patch })}
+          />
         ))}
         {activos.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Sin préstamos activos.</p>}
       </section>
@@ -165,6 +162,67 @@ export function AdminPrestamos() {
 
       <HistorialAbonos pays={(data?.pays ?? []).filter((p) => p.status === "confirmado")} nameOf={nameOf} chName={chName} />
     </div>
+  );
+}
+
+function SocioLoansGroup({ name, loans, pays, channels, chName, adminId, onChanged, onDeleteLoan, onUpdateLoan }: any) {
+  const [open, setOpen] = useState(false);
+  const totals = useMemo(() => {
+    let capital = 0, interes = 0;
+    for (const l of loans) {
+      const confirmed = pays.filter((p: any) => p.loan_id === l.id && p.status === "confirmado");
+      const d = projectDebt({
+        principal: Number(l.principal),
+        rateType: l.rate_type as RateType,
+        rateValue: Number(l.rate_value),
+        startDate: l.disbursed_at ?? l.approved_at ?? l.created_at,
+        payments: confirmed,
+      });
+      capital += d.capital;
+      interes += d.interes;
+    }
+    return { capital, interes, total: capital + interes };
+  }, [loans, pays]);
+
+  return (
+    <Card className="p-3">
+      <Collapsible open={open} onOpenChange={setOpen}>
+        <CollapsibleTrigger className="w-full text-left">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="font-bold truncate">{name}</p>
+              <p className="text-[11px] text-muted-foreground">{loans.length} préstamo(s) activo(s)</p>
+            </div>
+            <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+          </div>
+          <div className="grid grid-cols-3 gap-2 text-xs mt-2">
+            <div><span className="text-muted-foreground block">Capital</span><span className="font-semibold">{formatUSD(totals.capital)}</span></div>
+            <div><span className="text-muted-foreground block">Interés</span><span className="font-semibold text-primary">{formatUSD(totals.interes)}</span></div>
+            <div><span className="text-muted-foreground block">Total</span><span className="font-bold">{formatUSD(totals.total)}</span></div>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-2 pt-3 mt-2 border-t border-border">
+          {loans.length > 1 && (
+            <div className="flex justify-end">
+              <ConsolidarDialog loans={loans} pays={pays} channels={channels} adminId={adminId} onDone={onChanged} />
+            </div>
+          )}
+          {loans.map((l: any) => (
+            <LoanAdminCard
+              key={l.id}
+              loan={l}
+              pays={pays.filter((p: any) => p.loan_id === l.id)}
+              channels={channels}
+              chName={chName}
+              adminId={adminId}
+              onChanged={onChanged}
+              onDelete={() => onDeleteLoan(l.id)}
+              onUpdate={(patch: any) => onUpdateLoan(l.id, patch)}
+            />
+          ))}
+        </CollapsibleContent>
+      </Collapsible>
+    </Card>
   );
 }
 
