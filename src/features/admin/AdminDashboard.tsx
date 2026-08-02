@@ -112,6 +112,13 @@ export function AdminDashboard() {
                 <MiniStat label="Capital por cobrar" value={capPorCobrar} tone="warn" />
                 <MiniStat label="Interés por cobrar" value={intPorCobrar} tone="warn" />
               </div>
+              <ChannelStatement
+                channel={ch}
+                profiles={profiles}
+                contribs={contribs}
+                loans={loans}
+                payments={payments}
+              />
             </div>
           ))}
         </div>
