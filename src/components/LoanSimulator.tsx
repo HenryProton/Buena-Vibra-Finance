@@ -44,6 +44,14 @@ function SimNuevo() {
   const [fechaInicio, setFechaInicio] = useState(today);
   const [fechaFin, setFechaFin] = useState(in30);
 
+  const invalid = useMemo(() => {
+    const s = new Date(fechaInicio).getTime();
+    const e = new Date(fechaFin).getTime();
+    if (isNaN(s) || isNaN(e)) return "Selecciona ambas fechas.";
+    if (e <= s) return "La fecha de pago debe ser posterior a la fecha del préstamo.";
+    return null;
+  }, [fechaInicio, fechaFin]);
+
   const d = useMemo(() => {
     const principal = Number(monto) || 0;
     const rv = Number(rateValue) || 0;
@@ -88,15 +96,19 @@ function SimNuevo() {
         </div>
         <div className="space-y-1 col-span-2">
           <Label className="text-xs">Fecha de pago</Label>
-          <Input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} />
+          <Input type="date" min={fechaInicio} value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} />
         </div>
       </div>
-      <ResultBox
-        capital={d.capital}
-        interes={d.interes}
-        total={d.total}
-        note={`${rateLabel(rateType, Number(rateValue) || 0)} · ${d.days} días (${new Date(fechaInicio).toLocaleDateString("es-VE")} → ${new Date(fechaFin).toLocaleDateString("es-VE")})`}
-      />
+      {invalid ? (
+        <p className="text-xs text-destructive font-medium text-center py-2">{invalid}</p>
+      ) : (
+        <ResultBox
+          capital={d.capital}
+          interes={d.interes}
+          total={d.total}
+          note={`${rateLabel(rateType, Number(rateValue) || 0)} · ${d.days} días (${new Date(fechaInicio).toLocaleDateString("es-VE")} → ${new Date(fechaFin).toLocaleDateString("es-VE")})`}
+        />
+      )}
     </div>
   );
 }
@@ -145,6 +157,17 @@ function SimActivo({ scope, userId }: { scope: Scope; userId?: string }) {
     });
   }, [loan, fecha, data?.pays]);
 
+  const loanStart = loan ? (loan.disbursed_at ?? loan.approved_at ?? loan.created_at) : null;
+  const loanStartDay = loanStart ? new Date(loanStart).toISOString().slice(0, 10) : "";
+  const invalid = useMemo(() => {
+    if (!loanStartDay) return null;
+    const t = new Date(fecha).getTime();
+    if (isNaN(t)) return "Selecciona una fecha de pago.";
+    if (t <= new Date(loanStartDay).getTime())
+      return "La fecha de pago debe ser posterior a la fecha del préstamo.";
+    return null;
+  }, [fecha, loanStartDay]);
+
   if (loans.length === 0) {
     return <p className="text-xs text-muted-foreground text-center py-3">No hay préstamos activos.</p>;
   }
@@ -165,17 +188,27 @@ function SimActivo({ scope, userId }: { scope: Scope; userId?: string }) {
           </SelectContent>
         </Select>
       </div>
-      <div className="space-y-1">
-        <Label className="text-xs">¿En qué fecha pagarías?</Label>
-        <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+      <div className="grid grid-cols-2 gap-2">
+        <div className="space-y-1">
+          <Label className="text-xs">Fecha del préstamo</Label>
+          <Input type="date" value={loanStartDay} readOnly disabled />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Fecha de pago</Label>
+          <Input type="date" min={loanStartDay} value={fecha} onChange={(e) => setFecha(e.target.value)} />
+        </div>
       </div>
-      {d && (
-        <ResultBox
-          capital={d.capital}
-          interes={d.interes}
-          total={d.total}
-          note={`Al ${new Date(fecha).toLocaleDateString("es-VE")} · ${d.days} días desde el desembolso`}
-        />
+      {invalid ? (
+        <p className="text-xs text-destructive font-medium text-center py-2">{invalid}</p>
+      ) : (
+        d && (
+          <ResultBox
+            capital={d.capital}
+            interes={d.interes}
+            total={d.total}
+            note={`Al ${new Date(fecha).toLocaleDateString("es-VE")} · ${d.days} días desde el desembolso`}
+          />
+        )
       )}
     </div>
   );

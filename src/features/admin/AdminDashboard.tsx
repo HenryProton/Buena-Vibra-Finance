@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { formatUSD } from "@/lib/format";
 import { projectDebt, type RateType } from "@/lib/loan-math";
 import { useChannels } from "@/lib/queries";
+import { ChannelStatement } from "@/components/ChannelStatement";
 import { Users, Wallet, HandCoins, Clock, Landmark, TrendingUp, TrendingDown } from "lucide-react";
 
 export function AdminDashboard() {
@@ -112,6 +113,13 @@ export function AdminDashboard() {
                 <MiniStat label="Capital por cobrar" value={capPorCobrar} tone="warn" />
                 <MiniStat label="Interés por cobrar" value={intPorCobrar} tone="warn" />
               </div>
+              <ChannelStatement
+                channel={ch}
+                profiles={profiles}
+                contribs={contribs}
+                loans={loans}
+                payments={payments}
+              />
             </div>
           ))}
         </div>
