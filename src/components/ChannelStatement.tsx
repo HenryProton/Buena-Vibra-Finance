@@ -158,12 +158,23 @@ function Section({
       <h4 className="font-semibold text-sm">{title}</h4>
       {rows.length === 0 && <p className="text-xs text-muted-foreground">Sin movimientos.</p>}
       {rows.map((r, i) => (
-        <div key={i} className="flex items-start justify-between gap-2 rounded-md bg-muted/40 p-2 text-xs">
-          <div className="min-w-0">
-            <p className="font-medium truncate">{r.socio}</p>
-            <p className="text-muted-foreground truncate">{r.concepto} · {fmtDate(r.fecha)}</p>
+        <div key={i} className="rounded-md bg-muted/40 p-2 text-xs space-y-1">
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-muted-foreground">Monto</span>
+            <span className={`font-bold whitespace-nowrap ${color}`}>{formatUSD(r.monto)}</span>
           </div>
-          <span className={`font-semibold whitespace-nowrap ${color}`}>{formatUSD(r.monto)}</span>
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-muted-foreground shrink-0">Fecha</span>
+            <span className="font-medium text-right">{fmtDate(r.fecha)}</span>
+          </div>
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-muted-foreground shrink-0">Socio</span>
+            <span className="font-medium text-right min-w-0 break-words">{r.socio}</span>
+          </div>
+          <div className="flex items-start justify-between gap-2">
+            <span className="text-muted-foreground shrink-0">Concepto</span>
+            <span className="text-right min-w-0 break-words">{r.concepto}</span>
+          </div>
         </div>
       ))}
       <div className="flex justify-between text-xs pt-1 border-t border-border">
