@@ -129,21 +129,18 @@ export function AdminPrestamos() {
       <section className="space-y-3">
         <h3 className="text-sm font-semibold text-muted-foreground">Activos ({activos.length})</h3>
         {Object.entries(activosByUser).map(([uid, loans]) => (
-          <div key={uid} className="space-y-2">
-            <div className="flex items-center justify-between px-1">
-              <p className="text-sm font-semibold">{nameOf(uid)} <span className="text-xs text-muted-foreground">({loans.length})</span></p>
-              {loans.length > 1 && (
-                <ConsolidarDialog loans={loans} pays={data?.pays ?? []} channels={channels} adminId={user!.id} onDone={invalidate} />
-              )}
-            </div>
-            {loans.map((l) => (
-              <LoanAdminCard key={l.id} loan={l} pays={(data?.pays ?? []).filter((p) => p.loan_id === l.id)} channels={channels} chName={chName}
-                adminId={user!.id} onChanged={invalidate}
-                onDelete={() => { if (window.confirm("¿Eliminar este préstamo y todos sus abonos?")) deleteLoan.mutate(l.id); }}
-                onUpdate={(patch: any) => updateLoan.mutate({ id: l.id, patch })}
-              />
-            ))}
-          </div>
+          <SocioLoansGroup
+            key={uid}
+            name={nameOf(uid)}
+            loans={loans}
+            pays={data?.pays ?? []}
+            channels={channels}
+            chName={chName}
+            adminId={user!.id}
+            onChanged={invalidate}
+            onDeleteLoan={(id: string) => { if (window.confirm("¿Eliminar este préstamo y todos sus abonos?")) deleteLoan.mutate(id); }}
+            onUpdateLoan={(id: string, patch: any) => updateLoan.mutate({ id, patch })}
+          />
         ))}
         {activos.length === 0 && <p className="text-xs text-muted-foreground text-center py-4">Sin préstamos activos.</p>}
       </section>
