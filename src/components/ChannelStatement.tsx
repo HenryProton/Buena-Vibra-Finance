@@ -48,8 +48,8 @@ export function ChannelStatement({
         const cap = Number(p.amount_capital) || 0;
         const int = Number(p.amount_interest) || 0;
         const fecha = (p.payment_date ?? p.confirmed_at ?? p.reported_at ?? "").slice(0, 10);
-        if (cap > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Abono a capital", tipo: "entrada", monto: cap });
-        if (int > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Pago de interés", tipo: "entrada", monto: int });
+        if (cap > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Pago de préstamo — abono a capital", tipo: "entrada", monto: cap });
+        if (int > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Pago de préstamo — intereses", tipo: "entrada", monto: int });
       });
     loans
       .filter((l) => l.disbursement_channel_id === channel.id && ["activo", "pagado"].includes(l.status))
