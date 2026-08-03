@@ -1,9 +1,18 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatUSD, MONTHS_ES } from "@/lib/format";
-import { Download, FileText, Share2 } from "lucide-react";
+import { Download, FileText, Share2, AlertTriangle, CheckCircle2 } from "lucide-react";
+
+const CONCEPTS = {
+  aporte: "Aportes mensuales",
+  capital: "Abonos a capital",
+  interes: "Intereses de préstamos",
+  desembolso: "Desembolsos de préstamos",
+} as const;
+type ConceptKey = keyof typeof CONCEPTS;
 
 type Row = {
   fecha: string;
