@@ -188,6 +188,45 @@ export function ChannelStatement({
         </DialogHeader>
 
         <div className="space-y-4">
+          <Card className="p-3 space-y-2">
+            <h4 className="font-semibold text-sm">Resumen por concepto</h4>
+            {(Object.keys(CONCEPTS) as ConceptKey[]).map((k) => {
+              const v = byConcept.get(k);
+              if (!v) return null;
+              return (
+                <div key={k} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-muted-foreground min-w-0 break-words">
+                    {CONCEPTS[k]} <span className="opacity-60">({v.count})</span>
+                  </span>
+                  <span className={`font-bold whitespace-nowrap ${v.tipo === "entrada" ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+                    {v.tipo === "entrada" ? "+" : "−"}{formatUSD(v.total)}
+                  </span>
+                </div>
+              );
+            })}
+            {byConcept.size === 0 && <p className="text-xs text-muted-foreground">Sin movimientos.</p>}
+          </Card>
+
+          <Card className={`p-3 space-y-1 ${alerts.length ? "border-destructive" : "border-emerald-500/50"}`}>
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              {alerts.length ? <AlertTriangle className="h-4 w-4 text-destructive" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
+              <span>Conciliación automática</span>
+            </div>
+            {balanceLoading && <p className="text-xs text-muted-foreground">Verificando saldo del sistema…</p>}
+            {!balanceLoading && typeof serverBalance === "number" && (
+              <p className="text-xs text-muted-foreground">Saldo del sistema: <span className="font-semibold">{formatUSD(serverBalance)}</span></p>
+            )}
+            {alerts.length === 0 ? (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400">Todo cuadra: los totales por concepto y el saldo coinciden.</p>
+            ) : (
+              <ul className="space-y-1">
+                {alerts.map((a, i) => (
+                  <li key={i} className="text-xs text-destructive break-words">⚠️ {a}</li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
           <Section title="Recibió" rows={entradas} total={totalEntradas} tone="ok" fmtDate={fmtDate} />
           <Section title="Entregó" rows={salidas} total={totalSalidas} tone="warn" fmtDate={fmtDate} />
 
@@ -195,6 +234,7 @@ export function ChannelStatement({
             <span className="font-semibold text-sm">Saldo que debe tener</span>
             <span className={`font-bold ${saldo < 0 ? "text-destructive" : "text-primary"}`}>{formatUSD(saldo)}</span>
           </Card>
+
 
           <div className="grid grid-cols-2 gap-2">
             <Button variant="outline" size="sm" onClick={downloadCsv}>
