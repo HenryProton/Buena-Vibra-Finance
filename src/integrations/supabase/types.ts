@@ -346,6 +346,51 @@ export type Database = {
         }
         Relationships: []
       }
+      recovery_requests: {
+        Row: {
+          attempts: number
+          channel: string
+          code: string
+          created_at: string
+          delivered: boolean
+          destination: string | null
+          expires_at: string
+          full_name: string | null
+          id: string
+          identifier: string
+          used_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          attempts?: number
+          channel?: string
+          code: string
+          created_at?: string
+          delivered?: boolean
+          destination?: string | null
+          expires_at?: string
+          full_name?: string | null
+          id?: string
+          identifier: string
+          used_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          attempts?: number
+          channel?: string
+          code?: string
+          created_at?: string
+          delivered?: boolean
+          destination?: string | null
+          expires_at?: string
+          full_name?: string | null
+          id?: string
+          identifier?: string
+          used_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
