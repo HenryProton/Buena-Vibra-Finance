@@ -16,6 +16,7 @@ import { adminCreateInvitation, adminCancelInvitation } from "@/lib/invitations.
 import { Mail, Copy, X } from "lucide-react";
 import { adminCreateSocio, adminGetSocioLogin } from "@/lib/admin-users.functions";
 import { UserPlus, Share2 } from "lucide-react";
+import { RecoveryRequestsPanel } from "./RecoveryRequestsPanel";
 
 export function AdminSocios() {
   const qc = useQueryClient();
@@ -59,6 +60,7 @@ export function AdminSocios() {
 
   return (
     <div className="space-y-4">
+      <RecoveryRequestsPanel />
       <InvitationsPanel />
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Socios</h2>
