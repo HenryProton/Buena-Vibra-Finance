@@ -18,6 +18,7 @@ type Row = {
   fecha: string;
   socio: string;
   concepto: string;
+  key: ConceptKey;
   tipo: "entrada" | "salida";
   monto: number;
 };
@@ -47,6 +48,7 @@ export function ChannelStatement({
           fecha: (c.confirmed_at ?? c.reported_at ?? c.created_at ?? "").slice(0, 10),
           socio: nameOf(c.user_id),
           concepto: `Aporte mensual ${MONTHS_ES[(c.month ?? 1) - 1] ?? ""} ${c.year ?? ""}`.trim(),
+          key: "aporte",
           tipo: "entrada",
           monto: Number(c.amount) || 0,
         }),
@@ -57,8 +59,8 @@ export function ChannelStatement({
         const cap = Number(p.amount_capital) || 0;
         const int = Number(p.amount_interest) || 0;
         const fecha = (p.payment_date ?? p.confirmed_at ?? p.reported_at ?? "").slice(0, 10);
-        if (cap > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Pago de préstamo — abono a capital", tipo: "entrada", monto: cap });
-        if (int > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Pago de préstamo — intereses", tipo: "entrada", monto: int });
+        if (cap > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Pago de préstamo — abono a capital", key: "capital", tipo: "entrada", monto: cap });
+        if (int > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Pago de préstamo — intereses", key: "interes", tipo: "entrada", monto: int });
       });
     loans
       .filter((l) => l.disbursement_channel_id === channel.id && ["activo", "pagado"].includes(l.status))
@@ -67,6 +69,7 @@ export function ChannelStatement({
           fecha: (l.disbursed_at ?? l.approved_at ?? l.created_at ?? "").slice(0, 10),
           socio: nameOf(l.user_id),
           concepto: `Desembolso de préstamo${l.status === "pagado" ? " (pagado)" : ""}`,
+          key: "desembolso",
           tipo: "salida",
           monto: Number(l.principal) || 0,
         }),
@@ -80,19 +83,78 @@ export function ChannelStatement({
   const totalSalidas = salidas.reduce((a, r) => a + r.monto, 0);
   const saldo = totalEntradas - totalSalidas;
 
+  const byConcept = useMemo(() => {
+    const map = new Map<ConceptKey, { total: number; count: number; tipo: "entrada" | "salida" }>();
+    rows.forEach((r) => {
+      const prev = map.get(r.key) ?? { total: 0, count: 0, tipo: r.tipo };
+      map.set(r.key, { total: prev.total + r.monto, count: prev.count + 1, tipo: r.tipo });
+    });
+    return map;
+  }, [rows]);
+
+  // Saldo oficial calculado en el servidor (fuente de verdad)
+  const { data: serverBalance, isLoading: balanceLoading } = useQuery({
+    queryKey: ["channel-balance", channel.id, open],
+    enabled: open,
+    queryFn: async () => {
+      const { getChannelBalance } = await import("@/lib/channels.functions");
+      return await getChannelBalance({ data: { channelId: channel.id } });
+    },
+  });
+
+  // Conciliación automática
+  const alerts = useMemo(() => {
+    const a: string[] = [];
+    const sumConcepts =
+      Array.from(byConcept.entries()).reduce((acc, [, v]) => acc + (v.tipo === "entrada" ? v.total : -v.total), 0);
+    if (Math.abs(sumConcepts - saldo) > 0.01) {
+      a.push(`Los totales por concepto (${formatUSD(sumConcepts)}) no coinciden con el saldo calculado (${formatUSD(saldo)}).`);
+    }
+    if (typeof serverBalance === "number" && Math.abs(serverBalance - saldo) > 0.01) {
+      a.push(`El saldo del desglose (${formatUSD(saldo)}) no cuadra con el saldo del sistema (${formatUSD(serverBalance)}). Diferencia: ${formatUSD(saldo - serverBalance)}.`);
+    }
+    if (saldo < -0.01) a.push(`Esta pasarela tiene saldo negativo: entregó más de lo que recibió.`);
+    const sinFecha = rows.filter((r) => !r.fecha).length;
+    if (sinFecha > 0) a.push(`${sinFecha} movimiento(s) sin fecha registrada.`);
+    const sinSocio = rows.filter((r) => r.socio === "—").length;
+    if (sinSocio > 0) a.push(`${sinSocio} movimiento(s) sin socio identificado.`);
+    const montoCero = rows.filter((r) => !(r.monto > 0)).length;
+    if (montoCero > 0) a.push(`${montoCero} movimiento(s) con monto en cero o inválido.`);
+    return a;
+  }, [byConcept, saldo, serverBalance, rows]);
+
   const fmtDate = (d: string) => (d ? new Date(d + "T00:00:00").toLocaleDateString("es-VE") : "—");
 
+  const conceptLines = (tipo: "entrada" | "salida") =>
+    (Object.keys(CONCEPTS) as ConceptKey[])
+      .filter((k) => byConcept.get(k)?.tipo === tipo)
+      .map((k) => `  - ${CONCEPTS[k]}: ${formatUSD(byConcept.get(k)!.total)} (${byConcept.get(k)!.count} mov.)`);
+
   const buildText = () => {
-    const l: string[] = [`ESTADO DE CUENTA — ${channel.nombre}`, ""];
-    l.push("RECIBIÓ (entradas):");
-    entradas.forEach((r) => l.push(`  • ${formatUSD(r.monto)} — ${fmtDate(r.fecha)} — de ${r.socio} — ${r.concepto}`));
+    const l: string[] = [`*ESTADO DE CUENTA — ${channel.nombre}*`, `Generado: ${new Date().toLocaleDateString("es-VE")}`, ""];
+    l.push(`*RESUMEN POR CONCEPTO*`);
+    l.push(`Recibido:`);
+    l.push(...(conceptLines("entrada").length ? conceptLines("entrada") : ["  - Sin movimientos"]));
     l.push(`  TOTAL RECIBIDO: ${formatUSD(totalEntradas)}`, "");
-    l.push("ENTREGÓ (salidas):");
-    salidas.forEach((r) => l.push(`  • ${formatUSD(r.monto)} — ${fmtDate(r.fecha)} — a ${r.socio} — ${r.concepto}`));
+    l.push(`Entregado:`);
+    l.push(...(conceptLines("salida").length ? conceptLines("salida") : ["  - Sin movimientos"]));
     l.push(`  TOTAL ENTREGADO: ${formatUSD(totalSalidas)}`, "");
-    l.push(`SALDO QUE DEBE TENER: ${formatUSD(saldo)}`);
+    l.push(`*SALDO QUE DEBE TENER: ${formatUSD(saldo)}*`, "");
+    l.push(`*DETALLE — RECIBIÓ*`);
+    entradas.forEach((r) => l.push(`  • ${formatUSD(r.monto)} — ${fmtDate(r.fecha)} — de ${r.socio} — ${r.concepto}`));
+    if (!entradas.length) l.push("  Sin movimientos.");
+    l.push("", `*DETALLE — ENTREGÓ*`);
+    salidas.forEach((r) => l.push(`  • ${formatUSD(r.monto)} — ${fmtDate(r.fecha)} — a ${r.socio} — ${r.concepto}`));
+    if (!salidas.length) l.push("  Sin movimientos.");
+    if (alerts.length) {
+      l.push("", `*ALERTAS DE CONCILIACIÓN*`);
+      alerts.forEach((x) => l.push(`  ⚠️ ${x}`));
+    } else {
+      l.push("", "✅ Conciliación correcta: los totales cuadran.");
+    }
     return l.join("\n");
   };
+
 
   const downloadCsv = () => {
     const head = "Fecha,Socio,Concepto,Tipo,Monto USD";
