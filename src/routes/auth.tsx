@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -142,6 +142,11 @@ function AuthPage() {
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Ingresando..." : "Ingresar"}
                 </Button>
+                <p className="text-center">
+                  <Link to="/recuperar" className="text-sm text-primary underline">
+                    ¿Olvidaste tu usuario o contraseña?
+                  </Link>
+                </p>
               </form>
             </TabsContent>
 
