@@ -1,14 +1,24 @@
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { formatUSD, MONTHS_ES } from "@/lib/format";
-import { Download, FileText, Share2 } from "lucide-react";
+import { Download, FileText, Share2, AlertTriangle, CheckCircle2 } from "lucide-react";
+
+const CONCEPTS = {
+  aporte: "Aportes mensuales",
+  capital: "Abonos a capital",
+  interes: "Intereses de préstamos",
+  desembolso: "Desembolsos de préstamos",
+} as const;
+type ConceptKey = keyof typeof CONCEPTS;
 
 type Row = {
   fecha: string;
   socio: string;
   concepto: string;
+  key: ConceptKey;
   tipo: "entrada" | "salida";
   monto: number;
 };
@@ -38,6 +48,7 @@ export function ChannelStatement({
           fecha: (c.confirmed_at ?? c.reported_at ?? c.created_at ?? "").slice(0, 10),
           socio: nameOf(c.user_id),
           concepto: `Aporte mensual ${MONTHS_ES[(c.month ?? 1) - 1] ?? ""} ${c.year ?? ""}`.trim(),
+          key: "aporte",
           tipo: "entrada",
           monto: Number(c.amount) || 0,
         }),
@@ -48,8 +59,8 @@ export function ChannelStatement({
         const cap = Number(p.amount_capital) || 0;
         const int = Number(p.amount_interest) || 0;
         const fecha = (p.payment_date ?? p.confirmed_at ?? p.reported_at ?? "").slice(0, 10);
-        if (cap > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Pago de préstamo — abono a capital", tipo: "entrada", monto: cap });
-        if (int > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Pago de préstamo — intereses", tipo: "entrada", monto: int });
+        if (cap > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Pago de préstamo — abono a capital", key: "capital", tipo: "entrada", monto: cap });
+        if (int > 0) out.push({ fecha, socio: nameOf(p.user_id), concepto: "Pago de préstamo — intereses", key: "interes", tipo: "entrada", monto: int });
       });
     loans
       .filter((l) => l.disbursement_channel_id === channel.id && ["activo", "pagado"].includes(l.status))
@@ -58,6 +69,7 @@ export function ChannelStatement({
           fecha: (l.disbursed_at ?? l.approved_at ?? l.created_at ?? "").slice(0, 10),
           socio: nameOf(l.user_id),
           concepto: `Desembolso de préstamo${l.status === "pagado" ? " (pagado)" : ""}`,
+          key: "desembolso",
           tipo: "salida",
           monto: Number(l.principal) || 0,
         }),
@@ -71,19 +83,78 @@ export function ChannelStatement({
   const totalSalidas = salidas.reduce((a, r) => a + r.monto, 0);
   const saldo = totalEntradas - totalSalidas;
 
+  const byConcept = useMemo(() => {
+    const map = new Map<ConceptKey, { total: number; count: number; tipo: "entrada" | "salida" }>();
+    rows.forEach((r) => {
+      const prev = map.get(r.key) ?? { total: 0, count: 0, tipo: r.tipo };
+      map.set(r.key, { total: prev.total + r.monto, count: prev.count + 1, tipo: r.tipo });
+    });
+    return map;
+  }, [rows]);
+
+  // Saldo oficial calculado en el servidor (fuente de verdad)
+  const { data: serverBalance, isLoading: balanceLoading } = useQuery({
+    queryKey: ["channel-balance", channel.id, open],
+    enabled: open,
+    queryFn: async () => {
+      const { getChannelBalance } = await import("@/lib/channels.functions");
+      return await getChannelBalance({ data: { channelId: channel.id } });
+    },
+  });
+
+  // Conciliación automática
+  const alerts = useMemo(() => {
+    const a: string[] = [];
+    const sumConcepts =
+      Array.from(byConcept.entries()).reduce((acc, [, v]) => acc + (v.tipo === "entrada" ? v.total : -v.total), 0);
+    if (Math.abs(sumConcepts - saldo) > 0.01) {
+      a.push(`Los totales por concepto (${formatUSD(sumConcepts)}) no coinciden con el saldo calculado (${formatUSD(saldo)}).`);
+    }
+    if (typeof serverBalance === "number" && Math.abs(serverBalance - saldo) > 0.01) {
+      a.push(`El saldo del desglose (${formatUSD(saldo)}) no cuadra con el saldo del sistema (${formatUSD(serverBalance)}). Diferencia: ${formatUSD(saldo - serverBalance)}.`);
+    }
+    if (saldo < -0.01) a.push(`Esta pasarela tiene saldo negativo: entregó más de lo que recibió.`);
+    const sinFecha = rows.filter((r) => !r.fecha).length;
+    if (sinFecha > 0) a.push(`${sinFecha} movimiento(s) sin fecha registrada.`);
+    const sinSocio = rows.filter((r) => r.socio === "—").length;
+    if (sinSocio > 0) a.push(`${sinSocio} movimiento(s) sin socio identificado.`);
+    const montoCero = rows.filter((r) => !(r.monto > 0)).length;
+    if (montoCero > 0) a.push(`${montoCero} movimiento(s) con monto en cero o inválido.`);
+    return a;
+  }, [byConcept, saldo, serverBalance, rows]);
+
   const fmtDate = (d: string) => (d ? new Date(d + "T00:00:00").toLocaleDateString("es-VE") : "—");
 
+  const conceptLines = (tipo: "entrada" | "salida") =>
+    (Object.keys(CONCEPTS) as ConceptKey[])
+      .filter((k) => byConcept.get(k)?.tipo === tipo)
+      .map((k) => `  - ${CONCEPTS[k]}: ${formatUSD(byConcept.get(k)!.total)} (${byConcept.get(k)!.count} mov.)`);
+
   const buildText = () => {
-    const l: string[] = [`ESTADO DE CUENTA — ${channel.nombre}`, ""];
-    l.push("RECIBIÓ (entradas):");
-    entradas.forEach((r) => l.push(`  • ${formatUSD(r.monto)} — ${fmtDate(r.fecha)} — de ${r.socio} — ${r.concepto}`));
+    const l: string[] = [`*ESTADO DE CUENTA — ${channel.nombre}*`, `Generado: ${new Date().toLocaleDateString("es-VE")}`, ""];
+    l.push(`*RESUMEN POR CONCEPTO*`);
+    l.push(`Recibido:`);
+    l.push(...(conceptLines("entrada").length ? conceptLines("entrada") : ["  - Sin movimientos"]));
     l.push(`  TOTAL RECIBIDO: ${formatUSD(totalEntradas)}`, "");
-    l.push("ENTREGÓ (salidas):");
-    salidas.forEach((r) => l.push(`  • ${formatUSD(r.monto)} — ${fmtDate(r.fecha)} — a ${r.socio} — ${r.concepto}`));
+    l.push(`Entregado:`);
+    l.push(...(conceptLines("salida").length ? conceptLines("salida") : ["  - Sin movimientos"]));
     l.push(`  TOTAL ENTREGADO: ${formatUSD(totalSalidas)}`, "");
-    l.push(`SALDO QUE DEBE TENER: ${formatUSD(saldo)}`);
+    l.push(`*SALDO QUE DEBE TENER: ${formatUSD(saldo)}*`, "");
+    l.push(`*DETALLE — RECIBIÓ*`);
+    entradas.forEach((r) => l.push(`  • ${formatUSD(r.monto)} — ${fmtDate(r.fecha)} — de ${r.socio} — ${r.concepto}`));
+    if (!entradas.length) l.push("  Sin movimientos.");
+    l.push("", `*DETALLE — ENTREGÓ*`);
+    salidas.forEach((r) => l.push(`  • ${formatUSD(r.monto)} — ${fmtDate(r.fecha)} — a ${r.socio} — ${r.concepto}`));
+    if (!salidas.length) l.push("  Sin movimientos.");
+    if (alerts.length) {
+      l.push("", `*ALERTAS DE CONCILIACIÓN*`);
+      alerts.forEach((x) => l.push(`  ⚠️ ${x}`));
+    } else {
+      l.push("", "✅ Conciliación correcta: los totales cuadran.");
+    }
     return l.join("\n");
   };
+
 
   const downloadCsv = () => {
     const head = "Fecha,Socio,Concepto,Tipo,Monto USD";
@@ -117,6 +188,45 @@ export function ChannelStatement({
         </DialogHeader>
 
         <div className="space-y-4">
+          <Card className="p-3 space-y-2">
+            <h4 className="font-semibold text-sm">Resumen por concepto</h4>
+            {(Object.keys(CONCEPTS) as ConceptKey[]).map((k) => {
+              const v = byConcept.get(k);
+              if (!v) return null;
+              return (
+                <div key={k} className="flex items-center justify-between gap-2 text-xs">
+                  <span className="text-muted-foreground min-w-0 break-words">
+                    {CONCEPTS[k]} <span className="opacity-60">({v.count})</span>
+                  </span>
+                  <span className={`font-bold whitespace-nowrap ${v.tipo === "entrada" ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}`}>
+                    {v.tipo === "entrada" ? "+" : "−"}{formatUSD(v.total)}
+                  </span>
+                </div>
+              );
+            })}
+            {byConcept.size === 0 && <p className="text-xs text-muted-foreground">Sin movimientos.</p>}
+          </Card>
+
+          <Card className={`p-3 space-y-1 ${alerts.length ? "border-destructive" : "border-emerald-500/50"}`}>
+            <div className="flex items-center gap-2 text-sm font-semibold">
+              {alerts.length ? <AlertTriangle className="h-4 w-4 text-destructive" /> : <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
+              <span>Conciliación automática</span>
+            </div>
+            {balanceLoading && <p className="text-xs text-muted-foreground">Verificando saldo del sistema…</p>}
+            {!balanceLoading && typeof serverBalance === "number" && (
+              <p className="text-xs text-muted-foreground">Saldo del sistema: <span className="font-semibold">{formatUSD(serverBalance)}</span></p>
+            )}
+            {alerts.length === 0 ? (
+              <p className="text-xs text-emerald-600 dark:text-emerald-400">Todo cuadra: los totales por concepto y el saldo coinciden.</p>
+            ) : (
+              <ul className="space-y-1">
+                {alerts.map((a, i) => (
+                  <li key={i} className="text-xs text-destructive break-words">⚠️ {a}</li>
+                ))}
+              </ul>
+            )}
+          </Card>
+
           <Section title="Recibió" rows={entradas} total={totalEntradas} tone="ok" fmtDate={fmtDate} />
           <Section title="Entregó" rows={salidas} total={totalSalidas} tone="warn" fmtDate={fmtDate} />
 
@@ -124,6 +234,7 @@ export function ChannelStatement({
             <span className="font-semibold text-sm">Saldo que debe tener</span>
             <span className={`font-bold ${saldo < 0 ? "text-destructive" : "text-primary"}`}>{formatUSD(saldo)}</span>
           </Card>
+
 
           <div className="grid grid-cols-2 gap-2">
             <Button variant="outline" size="sm" onClick={downloadCsv}>
