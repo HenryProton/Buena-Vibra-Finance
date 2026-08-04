@@ -1,3 +1,4 @@
+import { useCajaPauses } from "@/lib/queries";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,6 +27,7 @@ const SOCIO_TABS: SocioTab[] = ["inicio", "aportes", "prestamos", "perfil"];
 const ADMIN_TABS: AdminTab[] = ["dashboard", "socios", "aportes", "prestamos", "perfil"];
 
 function AppShell() {
+  useCajaPauses();
   const { user, profile, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const [socioTab, setSocioTab] = useState<SocioTab>("inicio");

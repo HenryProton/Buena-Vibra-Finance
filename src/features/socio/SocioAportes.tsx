@@ -13,8 +13,8 @@ import { Progress } from "@/components/ui/progress";
 import { formatUSD, MONTHS_ES } from "@/lib/format";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Check, Clock, AlertCircle, BarChart3 } from "lucide-react";
-import { useCajaSettings, useChannels } from "@/lib/queries";
+import { Check, Clock, AlertCircle, BarChart3, PauseCircle, Sparkles } from "lucide-react";
+import { useCajaSettings, useChannels, useCajaPauses } from "@/lib/queries";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 export function SocioAportes() {
@@ -25,6 +25,7 @@ export function SocioAportes() {
   const [selectedBar, setSelectedBar] = useState<string | null>(null);
   const { data: settings } = useCajaSettings();
   const { data: channels = [] } = useChannels(true);
+  const { rows: pauses, isPausedMonth } = useCajaPauses();
 
   const aporteMes = (profile?.num_acciones ?? 1) * Number(settings?.aporte_mensual ?? 10);
 
@@ -72,14 +73,19 @@ export function SocioAportes() {
   const now = new Date();
   const isPast = (y: number, m: number) => y < now.getFullYear() || (y === now.getFullYear() && m <= now.getMonth() + 1);
 
+  const pausados = cycle.filter((c) => isPausedMonth(c.year, c.month));
   const pagados = cycle.filter((c) => confirmadosSet.has(`${c.year}-${c.month}`));
-  const pendientes = cycle.filter((c) => !confirmadosSet.has(`${c.year}-${c.month}`) && !reportadosSet.has(`${c.year}-${c.month}`) && isPast(c.year, c.month));
-  const futuros = cycle.filter((c) => !confirmadosSet.has(`${c.year}-${c.month}`) && !reportadosSet.has(`${c.year}-${c.month}`) && !isPast(c.year, c.month));
+  const pendientes = cycle.filter((c) => !confirmadosSet.has(`${c.year}-${c.month}`) && !reportadosSet.has(`${c.year}-${c.month}`) && isPast(c.year, c.month) && !isPausedMonth(c.year, c.month));
+  const futuros = cycle.filter((c) => !confirmadosSet.has(`${c.year}-${c.month}`) && !reportadosSet.has(`${c.year}-${c.month}`) && !isPast(c.year, c.month) && !isPausedMonth(c.year, c.month));
 
+  const especiales = aportes.filter((a) => isPausedMonth(a.year, a.month));
+  const totalEspecial = especiales
+    .filter((a) => a.status !== "pendiente")
+    .reduce((s, a) => s + Number(a.amount), 0);
   const totalPagado = pagados.length * aporteMes;
   const totalPendiente = pendientes.length * aporteMes;
   const totalFuturo = futuros.length * aporteMes;
-  const totalCiclo = cycle.length * aporteMes;
+  const totalCiclo = (cycle.length - pausados.length) * aporteMes;
   const pct = totalCiclo === 0 ? 0 : Math.round((totalPagado / totalCiclo) * 100);
 
   return (
@@ -111,19 +117,51 @@ export function SocioAportes() {
         </p>
       </Card>
 
+      {pausados.length > 0 && (
+        <Card className="p-4 space-y-2 border-blue-500/40 bg-blue-500/5">
+          <h3 className="font-semibold text-sm flex items-center gap-2 text-blue-600">
+            <PauseCircle className="h-4 w-4" />Meses en pausa ({pausados.length})
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            En estos meses no estás obligado a aportar y tus préstamos no generan intereses. Si aportas igual, queda
+            registrado como <strong>aporte especial</strong>.
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {pausados.map((c) => (
+              <Badge key={`${c.year}-${c.month}`} variant="outline" className="text-[11px] border-blue-500/40 text-blue-600">
+                {MONTHS_ES[c.month - 1]} {c.year}
+              </Badge>
+            ))}
+          </div>
+          {especiales.length > 0 && (
+            <p className="text-xs">
+              Aportes especiales registrados: <strong>{especiales.length}</strong> · Total{" "}
+              <strong className="text-primary">{formatUSD(totalEspecial)}</strong>
+            </p>
+          )}
+          {pauses.some((p) => p.note) && (
+            <p className="text-[11px] text-muted-foreground">
+              {pauses.filter((p) => p.note).map((p) => `${MONTHS_ES[p.month - 1]} ${p.year}: ${p.note}`).join(" · ")}
+            </p>
+          )}
+        </Card>
+      )}
+
       {(() => {
         const chartData = cycle.map((c) => {
           const key = `${c.year}-${c.month}`;
           const paid = confirmadosSet.has(key);
           const reported = reportadosSet.has(key);
           const past = isPast(c.year, c.month);
-          const status: "pagado" | "reportado" | "pendiente" | "futuro" = paid ? "pagado" : reported ? "reportado" : past ? "pendiente" : "futuro";
+          const pausedM = isPausedMonth(c.year, c.month);
+          const status: "pagado" | "reportado" | "pendiente" | "futuro" | "pausa" = paid ? "pagado" : reported ? "reportado" : pausedM ? "pausa" : past ? "pendiente" : "futuro";
           const aporte = aportes.find((a) => a.year === c.year && a.month === c.month);
           return {
             key,
             label: `${MONTHS_ES[c.month - 1].slice(0, 3)} ${String(c.year).slice(2)}`,
             fullLabel: `${MONTHS_ES[c.month - 1]} ${c.year}`,
-            monto: aporteMes,
+            monto: pausedM && !paid && !reported ? aporteMes : aporteMes,
+            paused: pausedM,
             status,
             amountRegistered: aporte?.amount ?? null,
             note: aporte?.note ?? null,
@@ -135,6 +173,7 @@ export function SocioAportes() {
           reportado: { label: "Reportado ⏳", color: "oklch(0.75 0.17 75)", badge: "bg-amber-500/15 text-amber-600 border-amber-500/40" },
           pendiente: { label: "Pendiente ⚠️", color: "var(--destructive)", badge: "bg-destructive/15 text-destructive border-destructive/40" },
           futuro: { label: "Por venir", color: "color-mix(in oklab, var(--muted-foreground) 40%, transparent)", badge: "bg-muted text-muted-foreground border-border" },
+          pausa: { label: "Caja en pausa ⏸", color: "oklch(0.65 0.12 250)", badge: "bg-blue-500/15 text-blue-600 border-blue-500/40" },
         };
         const CustomTooltip = ({ active, payload }: any) => {
           if (!active || !payload?.length) return null;
@@ -146,6 +185,7 @@ export function SocioAportes() {
               <p><span className={`inline-block px-1.5 py-0.5 rounded border text-[10px] ${meta.badge}`}>{meta.label}</span></p>
               <p className="text-muted-foreground">Aporte: <span className="font-semibold text-foreground">{formatUSD(p.monto)}</span></p>
               <p className="text-[10px] text-muted-foreground">100% capital · sin interés</p>
+              {p.paused && <p className="text-[10px] text-blue-600">Mes pausado: aporte opcional (especial)</p>}
             </div>
           );
         };
@@ -178,6 +218,7 @@ export function SocioAportes() {
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: "oklch(0.75 0.17 75)" }} />Reportado</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-destructive" />Pendiente</span>
               <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-muted-foreground/40" />Por venir</span>
+              <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: "oklch(0.65 0.12 250)" }} />En pausa</span>
             </div>
             {selected && (
               <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2 animate-fade-in">
@@ -208,10 +249,13 @@ export function SocioAportes() {
         <div className="grid grid-cols-4 gap-2">
           {cycle.map((c) => {
             const key = `${c.year}-${c.month}`;
+            const pausedM = isPausedMonth(c.year, c.month);
             const status = confirmadosSet.has(key)
               ? "confirmado"
               : reportadosSet.has(key)
               ? "reportado"
+              : pausedM
+              ? "pausa"
               : isPast(c.year, c.month)
               ? "pendiente"
               : "futuro";
@@ -221,12 +265,14 @@ export function SocioAportes() {
                 className={`rounded-md border p-2 text-center text-[11px] ${
                   status === "confirmado" ? "border-primary/40 bg-primary/10"
                   : status === "reportado" ? "border-amber-500/40 bg-amber-500/10"
+                  : status === "pausa" ? "border-blue-500/40 bg-blue-500/10 text-blue-600"
                   : status === "pendiente" ? "border-destructive/40 bg-destructive/10"
                   : "border-border bg-muted/30 text-muted-foreground"
                 }`}
               >
                 <p className="font-semibold">{MONTHS_ES[c.month - 1].slice(0, 3)}</p>
                 <p>{c.year}</p>
+                {pausedM && <p className="text-[9px]">⏸ pausa</p>}
               </div>
             );
           })}
@@ -279,7 +325,14 @@ export function SocioAportes() {
         {aportes.map((a) => (
           <Card key={a.id} className="p-3 flex items-center justify-between">
             <div>
-              <p className="font-medium text-sm">{MONTHS_ES[a.month - 1]} {a.year}</p>
+              <p className="font-medium text-sm flex items-center gap-1">
+                {MONTHS_ES[a.month - 1]} {a.year}
+                {isPausedMonth(a.year, a.month) && (
+                  <Badge variant="outline" className="text-[10px] border-blue-500/40 bg-blue-500/10 text-blue-600">
+                    <Sparkles className="h-3 w-3 mr-1" />Aporte especial
+                  </Badge>
+                )}
+              </p>
               <p className="text-xs text-muted-foreground">{a.num_acciones} acción(es)</p>
             </div>
             <div className="text-right">
