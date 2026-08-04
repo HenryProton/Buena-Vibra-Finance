@@ -117,6 +117,36 @@ export function SocioAportes() {
         </p>
       </Card>
 
+      {pausados.length > 0 && (
+        <Card className="p-4 space-y-2 border-blue-500/40 bg-blue-500/5">
+          <h3 className="font-semibold text-sm flex items-center gap-2 text-blue-600">
+            <PauseCircle className="h-4 w-4" />Meses en pausa ({pausados.length})
+          </h3>
+          <p className="text-xs text-muted-foreground">
+            En estos meses no estás obligado a aportar y tus préstamos no generan intereses. Si aportas igual, queda
+            registrado como <strong>aporte especial</strong>.
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {pausados.map((c) => (
+              <Badge key={`${c.year}-${c.month}`} variant="outline" className="text-[11px] border-blue-500/40 text-blue-600">
+                {MONTHS_ES[c.month - 1]} {c.year}
+              </Badge>
+            ))}
+          </div>
+          {especiales.length > 0 && (
+            <p className="text-xs">
+              Aportes especiales registrados: <strong>{especiales.length}</strong> · Total{" "}
+              <strong className="text-primary">{formatUSD(totalEspecial)}</strong>
+            </p>
+          )}
+          {pauses.some((p) => p.note) && (
+            <p className="text-[11px] text-muted-foreground">
+              {pauses.filter((p) => p.note).map((p) => `${MONTHS_ES[p.month - 1]} ${p.year}: ${p.note}`).join(" · ")}
+            </p>
+          )}
+        </Card>
+      )}
+
       {(() => {
         const chartData = cycle.map((c) => {
           const key = `${c.year}-${c.month}`;
