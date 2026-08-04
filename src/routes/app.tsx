@@ -27,6 +27,7 @@ const SOCIO_TABS: SocioTab[] = ["inicio", "aportes", "prestamos", "perfil"];
 const ADMIN_TABS: AdminTab[] = ["dashboard", "socios", "aportes", "prestamos", "perfil"];
 
 function AppShell() {
+  useCajaPauses();
   const { user, profile, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const [socioTab, setSocioTab] = useState<SocioTab>("inicio");
