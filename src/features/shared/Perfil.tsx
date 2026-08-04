@@ -8,7 +8,7 @@ import { useTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Sun, Moon, MonitorSmartphone, LogOut, Sparkles, Accessibility } from "lucide-react";
+import { Sun, Moon, MonitorSmartphone, LogOut, Sparkles, Accessibility, KeyRound } from "lucide-react";
 import { SocioAportes } from "@/features/socio/SocioAportes";
 import { SocioPrestamos } from "@/features/socio/SocioPrestamos";
 import { AdminAjustes } from "@/features/admin/AdminAjustes";
