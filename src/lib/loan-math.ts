@@ -60,6 +60,18 @@ export function interestThroughDate(asOf: Date, paused?: Set<string>): Date {
 }
 
 /**
+ * Meses pausados por defecto (se sincronizan una vez desde la caja) para los
+ * cálculos que no reciben `pausedMonths` explícitamente.
+ */
+let defaultPausedMonths: string[] = [];
+export function setDefaultPausedMonths(months: string[]) {
+  defaultPausedMonths = months;
+}
+export function getDefaultPausedMonths(): string[] {
+  return defaultPausedMonths;
+}
+
+/**
  * Calcula la deuda actual (y proyectada) tomando en cuenta las fechas reales de cada abono.
  * Los intereses se acumulan sobre el saldo pendiente entre eventos.
  * Cada abono aplica primero a intereses acumulados y luego a capital.
@@ -82,7 +94,7 @@ export function projectDebt(opts: {
   const start = typeof opts.startDate === "string" ? new Date(opts.startDate) : opts.startDate;
   const asOf = new Date((opts.asOf ?? new Date()).getTime() + (opts.extraDays ?? 0) * 86400000);
   const dr = dailyRate(opts.rateType, opts.rateValue);
-  const paused = new Set(opts.pausedMonths ?? []);
+  const paused = new Set(opts.pausedMonths ?? defaultPausedMonths);
   const span = (a: Date, b: Date) => chargeableDays(a, b, paused);
 
   if (opts.payments && opts.payments.length > 0) {
