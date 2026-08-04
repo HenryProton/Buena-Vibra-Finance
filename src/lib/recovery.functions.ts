@@ -236,8 +236,18 @@ export const verifyRecoveryCode = createServerFn({ method: "POST" })
 
     const { data: u } = await supabaseAdmin.auth.admin.getUserById(req.user_id);
     const userEmail = u?.user?.email ?? "";
+    const { data: prof } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", req.user_id)
+      .maybeSingle();
 
-    return { ok: true as const, email: userEmail };
+    return {
+      ok: true as const,
+      email: userEmail,
+      full_name: prof?.full_name ?? null,
+      placeholder: userEmail ? isPlaceholderEmail(userEmail) : false,
+    };
   });
 
 /** Admin: pending recovery requests, so the code can be forwarded manually. */
