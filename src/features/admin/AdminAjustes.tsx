@@ -11,8 +11,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { formatUSD } from "@/lib/format";
-import { useCajaSettings, useChannels } from "@/lib/queries";
-import { Plus, Trash2 } from "lucide-react";
+import { useCajaSettings, useChannels, useCajaPauses } from "@/lib/queries";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MONTHS_ES } from "@/lib/format";
+import { Plus, Trash2, PauseCircle } from "lucide-react";
 
 export function AdminAjustes() {
   const qc = useQueryClient();
@@ -144,5 +146,101 @@ function NuevoCanal({ onCreate, nextOrden }: { onCreate: (v: { nombre: string; a
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PausasCard() {
+  const qc = useQueryClient();
+  const { rows } = useCajaPauses();
+  const now = new Date();
+  const [year, setYear] = useState(String(now.getFullYear()));
+  const [month, setMonth] = useState(String(now.getMonth() + 1));
+  const [note, setNote] = useState("");
+
+  const addPause = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from("caja_pauses")
+        .insert({ year: Number(year), month: Number(month), note: note.trim() });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Mes pausado");
+      setNote("");
+      qc.invalidateQueries({ queryKey: ["caja-pauses"] });
+    },
+    onError: (e: Error) =>
+      toast.error(e.message.includes("duplicate") ? "Ese mes ya está pausado" : e.message),
+  });
+
+  const delPause = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("caja_pauses").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.success("Mes reactivado");
+      qc.invalidateQueries({ queryKey: ["caja-pauses"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <Card className="p-4 space-y-3">
+      <div className="flex items-center gap-2">
+        <PauseCircle className="h-4 w-4 text-primary" />
+        <h3 className="font-semibold text-sm">Meses en pausa</h3>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        En los meses pausados los préstamos <strong>no generan intereses</strong> y las mensualidades{" "}
+        <strong>no son obligatorias</strong>. Si un socio aporta o abona igual, queda registrado como{" "}
+        <strong>aporte especial</strong>.
+      </p>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label>Mes</Label>
+          <Select value={month} onValueChange={setMonth}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {MONTHS_ES.map((m, i) => <SelectItem key={i} value={String(i + 1)}>{m}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label>Año</Label>
+          <Input type="number" value={year} onChange={(e) => setYear(e.target.value)} />
+        </div>
+      </div>
+      <div className="space-y-1">
+        <Label>Motivo (opcional)</Label>
+        <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ej: Vacaciones colectivas" />
+      </div>
+      <Button className="w-full" variant="outline" onClick={() => addPause.mutate()} disabled={addPause.isPending}>
+        <Plus className="h-3 w-3 mr-1" />
+        {addPause.isPending ? "Guardando..." : "Pausar este mes"}
+      </Button>
+
+      {rows.length === 0 ? (
+        <p className="text-xs text-muted-foreground">No hay meses pausados.</p>
+      ) : (
+        <div className="space-y-1">
+          {rows.map((p) => (
+            <div key={p.id} className="flex items-center justify-between gap-2 py-2 border-b border-border last:border-0">
+              <div className="min-w-0">
+                <p className="text-sm font-medium">{MONTHS_ES[p.month - 1]} {p.year}</p>
+                {p.note && <p className="text-xs text-muted-foreground truncate">{p.note}</p>}
+              </div>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="text-[10px]">Sin intereses</Badge>
+                <Button size="icon" variant="ghost" onClick={() => delPause.mutate(p.id)}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
   );
 }
