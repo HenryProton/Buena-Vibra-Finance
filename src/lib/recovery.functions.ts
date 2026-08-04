@@ -67,10 +67,11 @@ export const requestRecoveryCode = createServerFn({ method: "POST" })
     const raw = data.identifier;
     const generic = {
       ok: true as const,
+      found: false as boolean,
       channel: "admin" as string,
       hint: "",
       message:
-        "Si los datos coinciden con una cuenta, enviaremos un código de 6 dígitos. Si no lo recibes, el administrador puede reenviártelo.",
+        "No encontramos una cuenta con ese dato. Revisa tu correo, teléfono o cédula, o pídele ayuda al administrador.",
     };
 
     // Find the auth user: by email, or via profile (phone / cédula)
@@ -167,6 +168,7 @@ export const requestRecoveryCode = createServerFn({ method: "POST" })
 
     return {
       ok: true as const,
+      found: true as boolean,
       channel,
       hint:
         channel === "email" && destination
@@ -234,8 +236,18 @@ export const verifyRecoveryCode = createServerFn({ method: "POST" })
 
     const { data: u } = await supabaseAdmin.auth.admin.getUserById(req.user_id);
     const userEmail = u?.user?.email ?? "";
+    const { data: prof } = await supabaseAdmin
+      .from("profiles")
+      .select("full_name")
+      .eq("id", req.user_id)
+      .maybeSingle();
 
-    return { ok: true as const, email: userEmail };
+    return {
+      ok: true as const,
+      email: userEmail,
+      full_name: prof?.full_name ?? null,
+      placeholder: userEmail ? isPlaceholderEmail(userEmail) : false,
+    };
   });
 
 /** Admin: pending recovery requests, so the code can be forwarded manually. */

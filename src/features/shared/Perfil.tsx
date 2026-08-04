@@ -8,7 +8,7 @@ import { useTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Sun, Moon, MonitorSmartphone, LogOut, Sparkles, Accessibility } from "lucide-react";
+import { Sun, Moon, MonitorSmartphone, LogOut, Sparkles, Accessibility, KeyRound } from "lucide-react";
 import { SocioAportes } from "@/features/socio/SocioAportes";
 import { SocioPrestamos } from "@/features/socio/SocioPrestamos";
 import { AdminAjustes } from "@/features/admin/AdminAjustes";
@@ -26,6 +26,10 @@ export function Perfil() {
   const [newPassword, setNewPassword] = useState("");
   const [savingCreds, setSavingCreds] = useState(false);
 
+  const [pwd, setPwd] = useState("");
+  const [pwd2, setPwd2] = useState("");
+  const [savingPwd, setSavingPwd] = useState(false);
+
   async function save() {
     if (!profile) return;
     setSaving(true);
@@ -34,6 +38,18 @@ export function Perfil() {
     if (error) return toast.error(error.message);
     toast.success("Datos actualizados");
     refresh();
+  }
+
+  async function changePassword() {
+    if (pwd.length < 6) return toast.error("La contraseña o PIN debe tener al menos 6 caracteres");
+    if (pwd !== pwd2) return toast.error("Las contraseñas no coinciden");
+    setSavingPwd(true);
+    const { error } = await supabase.auth.updateUser({ password: pwd });
+    setSavingPwd(false);
+    if (error) return toast.error(error.message);
+    toast.success("Contraseña actualizada");
+    setPwd("");
+    setPwd2("");
   }
 
   async function updateCreds() {
@@ -51,6 +67,7 @@ export function Perfil() {
     toast.success(patch.email ? "Revisa tu correo para confirmar el cambio de email" : "Contraseña actualizada");
     setNewEmail(""); setNewPassword("");
   }
+
 
   async function logout() {
     await supabase.auth.signOut();
@@ -89,6 +106,30 @@ export function Perfil() {
           <ThemeBtn active={theme === "vibrant"} onClick={() => setTheme("vibrant")} icon={<Sparkles className="h-4 w-4" />} label="Vibrante" />
           <ThemeBtn active={theme === "senior"} onClick={() => setTheme("senior")} icon={<Accessibility className="h-4 w-4" />} label="Adulto mayor" />
         </div>
+      </Card>
+
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <KeyRound className="h-4 w-4 text-primary" />
+          <h3 className="font-semibold">Seguridad</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Cambia tu contraseña o PIN de acceso cuando quieras (mínimo 6 caracteres).
+        </p>
+        <div className="space-y-1">
+          <Label>Nueva contraseña o PIN</Label>
+          <Input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} autoComplete="new-password" />
+        </div>
+        <div className="space-y-1">
+          <Label>Repite la contraseña o PIN</Label>
+          <Input type="password" value={pwd2} onChange={(e) => setPwd2(e.target.value)} autoComplete="new-password" />
+        </div>
+        <Button onClick={changePassword} disabled={savingPwd} className="w-full">
+          {savingPwd ? "Guardando..." : "Cambiar contraseña"}
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          Tu usuario actual: <span className="font-mono break-all">{user?.email}</span>
+        </p>
       </Card>
 
 
