@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      caja_pauses: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          month: number
+          note: string
+          updated_at: string
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          month: number
+          note?: string
+          updated_at?: string
+          year: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          month?: number
+          note?: string
+          updated_at?: string
+          year?: number
+        }
+        Relationships: []
+      }
       caja_settings: {
         Row: {
           aporte_mensual: number
