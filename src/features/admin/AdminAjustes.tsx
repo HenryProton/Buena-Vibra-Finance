@@ -89,6 +89,10 @@ export function AdminAjustes() {
         <p className="text-xs text-muted-foreground">Los socios lo verán en un desplegable en la pantalla de inicio.</p>
       </Card>
 
+      <PausasCard />
+
+
+
       <Button className="w-full" onClick={() => saveSettings.mutate()} disabled={saveSettings.isPending}>
         {saveSettings.isPending ? "Guardando..." : "Guardar ajustes"}
       </Button>
