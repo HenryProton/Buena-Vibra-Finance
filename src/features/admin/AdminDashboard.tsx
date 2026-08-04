@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { formatUSD } from "@/lib/format";
 import { projectDebt, type RateType } from "@/lib/loan-math";
 import { useChannels } from "@/lib/queries";
+import { useCajaPauses } from "@/lib/queries";
 import { ChannelStatement } from "@/components/ChannelStatement";
 import { Users, Wallet, HandCoins, Clock, Landmark, TrendingUp, TrendingDown } from "lucide-react";
 

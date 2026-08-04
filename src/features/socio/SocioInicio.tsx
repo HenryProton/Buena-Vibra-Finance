@@ -8,6 +8,7 @@ import { Wallet, HandCoins, AlertCircle, BookOpen } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useCajaSettings } from "@/lib/queries";
+import { useCajaPauses } from "@/lib/queries";
 
 export function SocioInicio() {
   const { user, profile } = useAuth();
