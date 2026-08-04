@@ -67,10 +67,11 @@ export const requestRecoveryCode = createServerFn({ method: "POST" })
     const raw = data.identifier;
     const generic = {
       ok: true as const,
+      found: false as boolean,
       channel: "admin" as string,
       hint: "",
       message:
-        "Si los datos coinciden con una cuenta, enviaremos un código de 6 dígitos. Si no lo recibes, el administrador puede reenviártelo.",
+        "No encontramos una cuenta con ese dato. Revisa tu correo, teléfono o cédula, o pídele ayuda al administrador.",
     };
 
     // Find the auth user: by email, or via profile (phone / cédula)
