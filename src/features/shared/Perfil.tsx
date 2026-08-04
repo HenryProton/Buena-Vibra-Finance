@@ -108,6 +108,30 @@ export function Perfil() {
         </div>
       </Card>
 
+      <Card className="p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <KeyRound className="h-4 w-4 text-primary" />
+          <h3 className="font-semibold">Seguridad</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Cambia tu contraseña o PIN de acceso cuando quieras (mínimo 6 caracteres).
+        </p>
+        <div className="space-y-1">
+          <Label>Nueva contraseña o PIN</Label>
+          <Input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} autoComplete="new-password" />
+        </div>
+        <div className="space-y-1">
+          <Label>Repite la contraseña o PIN</Label>
+          <Input type="password" value={pwd2} onChange={(e) => setPwd2(e.target.value)} autoComplete="new-password" />
+        </div>
+        <Button onClick={changePassword} disabled={savingPwd} className="w-full">
+          {savingPwd ? "Guardando..." : "Cambiar contraseña"}
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          Tu usuario actual: <span className="font-mono break-all">{user?.email}</span>
+        </p>
+      </Card>
+
 
       <Card className="p-4 space-y-2">
         <h3 className="font-semibold">Cuenta</h3>
