@@ -26,6 +26,10 @@ export function Perfil() {
   const [newPassword, setNewPassword] = useState("");
   const [savingCreds, setSavingCreds] = useState(false);
 
+  const [pwd, setPwd] = useState("");
+  const [pwd2, setPwd2] = useState("");
+  const [savingPwd, setSavingPwd] = useState(false);
+
   async function save() {
     if (!profile) return;
     setSaving(true);
@@ -34,6 +38,18 @@ export function Perfil() {
     if (error) return toast.error(error.message);
     toast.success("Datos actualizados");
     refresh();
+  }
+
+  async function changePassword() {
+    if (pwd.length < 6) return toast.error("La contraseña o PIN debe tener al menos 6 caracteres");
+    if (pwd !== pwd2) return toast.error("Las contraseñas no coinciden");
+    setSavingPwd(true);
+    const { error } = await supabase.auth.updateUser({ password: pwd });
+    setSavingPwd(false);
+    if (error) return toast.error(error.message);
+    toast.success("Contraseña actualizada");
+    setPwd("");
+    setPwd2("");
   }
 
   async function updateCreds() {
@@ -51,6 +67,7 @@ export function Perfil() {
     toast.success(patch.email ? "Revisa tu correo para confirmar el cambio de email" : "Contraseña actualizada");
     setNewEmail(""); setNewPassword("");
   }
+
 
   async function logout() {
     await supabase.auth.signOut();
