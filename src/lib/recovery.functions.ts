@@ -168,6 +168,7 @@ export const requestRecoveryCode = createServerFn({ method: "POST" })
 
     return {
       ok: true as const,
+      found: true as boolean,
       channel,
       hint:
         channel === "email" && destination
