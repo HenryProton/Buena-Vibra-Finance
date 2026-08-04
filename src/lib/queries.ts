@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+import { setDefaultPausedMonths } from "@/lib/loan-math";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,6 +30,9 @@ export function useCajaPauses() {
   const keys = rows.map((r) => `${r.year}-${String(r.month).padStart(2, "0")}`);
   const isPausedMonth = (year: number, month: number) =>
     keys.includes(`${year}-${String(month).padStart(2, "0")}`);
+  useEffect(() => {
+    setDefaultPausedMonths(keys);
+  }, [keys.join(",")]);
   return { ...q, rows, pausedMonths: keys, isPausedMonth };
 }
 
