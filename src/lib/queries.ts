@@ -11,6 +11,26 @@ export function useCajaSettings() {
   });
 }
 
+/** Meses en los que la caja está pausada: no se generan intereses ni aportes obligatorios. */
+export function useCajaPauses() {
+  const q = useQuery({
+    queryKey: ["caja-pauses"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("caja_pauses")
+        .select("*")
+        .order("year")
+        .order("month");
+      return data ?? [];
+    },
+  });
+  const rows = q.data ?? [];
+  const keys = rows.map((r) => `${r.year}-${String(r.month).padStart(2, "0")}`);
+  const isPausedMonth = (year: number, month: number) =>
+    keys.includes(`${year}-${String(month).padStart(2, "0")}`);
+  return { ...q, rows, pausedMonths: keys, isPausedMonth };
+}
+
 export function useChannels(onlyActive = false) {
   return useQuery({
     queryKey: ["channels", onlyActive],
