@@ -254,6 +254,18 @@ export function ChannelStatement({
             )}
           </Card>
 
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="h-3 w-3 text-muted-foreground shrink-0" />
+            <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+                  <SelectItem key={k} value={k} className="text-xs">{SORT_LABELS[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <Section title="Recibió" rows={entradas} total={totalEntradas} tone="ok" fmtDate={fmtDate} />
           <Section title="Entregó" rows={salidas} total={totalSalidas} tone="warn" fmtDate={fmtDate} />
 
