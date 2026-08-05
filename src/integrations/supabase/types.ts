@@ -455,6 +455,30 @@ export type Database = {
         }
         Returns: boolean
       }
+      ranking_aportes: {
+        Args: never
+        Returns: {
+          cumplimiento: number
+          es_yo: boolean
+          estrellas: number
+          meses_esperados: number
+          meses_pagados: number
+          nombre: string
+          posicion: number
+        }[]
+      }
+      ranking_prestamos: {
+        Args: never
+        Returns: {
+          al_dia: boolean
+          dias_sin_abono: number
+          es_yo: boolean
+          estrellas: number
+          nombre: string
+          posicion: number
+          prestamos_activos: number
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "socio"
