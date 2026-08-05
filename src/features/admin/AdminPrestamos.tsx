@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { formatUSD } from "@/lib/format";
+import { formatUSD, formatDateVE, localDateToIso } from "@/lib/format";
 import { projectDebt, rateLabel, type RateType } from "@/lib/loan-math";
 import { toast } from "sonner";
 import { useState, useMemo } from "react";

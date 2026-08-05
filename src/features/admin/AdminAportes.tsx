@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { formatUSD, MONTHS_ES } from "@/lib/format";
+import { formatUSD, MONTHS_ES, formatDateVE } from "@/lib/format";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";

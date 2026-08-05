@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calculator } from "lucide-react";
-import { formatUSD } from "@/lib/format";
+import { formatUSD, formatDateVE } from "@/lib/format";
 import { projectDebt, rateLabel, type RateType } from "@/lib/loan-math";
 
 type Scope = "mine" | "all";

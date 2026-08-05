@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatUSD } from "@/lib/format";
+import { formatUSD, formatDateVE } from "@/lib/format";
 import { projectDebt, rateLabel, type RateType } from "@/lib/loan-math";
 import { useState } from "react";
 import { toast } from "sonner";
