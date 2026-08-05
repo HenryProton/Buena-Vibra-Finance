@@ -93,7 +93,7 @@ export function projectDebt(opts: {
   /** Meses pausados en formato "YYYY-MM": no generan intereses. */
   pausedMonths?: string[];
 }) {
-  const start = typeof opts.startDate === "string" ? new Date(opts.startDate) : opts.startDate;
+  const start = parseLocalDate(opts.startDate) ?? new Date();
   const asOf = new Date((opts.asOf ?? new Date()).getTime() + (opts.extraDays ?? 0) * 86400000);
   const dr = dailyRate(opts.rateType, opts.rateValue);
   const paused = new Set(opts.pausedMonths ?? defaultPausedMonths);
