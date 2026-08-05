@@ -150,7 +150,7 @@ export function ChannelStatement({
     return a;
   }, [byConcept, saldo, serverBalance, rows]);
 
-  const fmtDate = (d: string) => (d ? new Date(d + "T00:00:00").toLocaleDateString("es-VE") : "—");
+  const fmtDate = (d: string) => formatDateVE(d);
 
   const conceptLines = (tipo: "entrada" | "salida") =>
     (Object.keys(CONCEPTS) as ConceptKey[])
