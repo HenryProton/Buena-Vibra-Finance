@@ -1,3 +1,5 @@
+import { parseLocalDate } from "@/lib/format";
+
 export type RateType = "daily" | "monthly";
 
 export type LoanPayment = {
