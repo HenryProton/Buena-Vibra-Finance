@@ -233,7 +233,7 @@ export function SocioAportes() {
                   <div><p className="text-muted-foreground">Interés</p><p className="font-bold">{formatUSD(0)}</p></div>
                 </div>
                 {selected.reportedAt && (
-                  <p className="text-[11px] text-muted-foreground">Reportado el {new Date(selected.reportedAt).toLocaleDateString("es-VE")}</p>
+                  <p className="text-[11px] text-muted-foreground">Reportado el {formatDateVE(selected.reportedAt)}</p>
                 )}
                 {selected.note && <p className="text-[11px] text-muted-foreground italic">"{selected.note}"</p>}
                 <p className="text-[10px] text-muted-foreground pt-1 border-t border-border">Los aportes mensuales son 100% capital para la caja; no generan interés.</p>

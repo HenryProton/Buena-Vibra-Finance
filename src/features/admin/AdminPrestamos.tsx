@@ -259,7 +259,7 @@ function HistorialAbonos({ pays, nameOf, chName }: { pays: any[]; nameOf: (u: st
                 return (
                   <div key={dk} className="p-3 space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="font-medium">{dk ? new Date(dk).toLocaleDateString("es-VE") : "Sin fecha"}</span>
+                      <span className="font-medium">{dk ? formatDateVE(dk) : "Sin fecha"}</span>
                       <span className="text-muted-foreground">{formatUSD(dayTotal)}</span>
                     </div>
                     {Object.entries(byCh).map(([chId, items]) => (
@@ -317,7 +317,7 @@ function LoanAdminCard({ loan, pays, channels, chName, adminId, onChanged, onDel
             <div className="min-w-0">
               {nameOf && <p className="text-xs text-muted-foreground truncate">{nameOf(loan.user_id)}</p>}
               <p className="font-bold">{formatUSD(Number(loan.principal))}</p>
-              <p className="text-[11px] text-muted-foreground">{rateLabel(loan.rate_type as RateType, Number(loan.rate_value))} · {new Date(start).toLocaleDateString("es-VE")}</p>
+              <p className="text-[11px] text-muted-foreground">{rateLabel(loan.rate_type as RateType, Number(loan.rate_value))} · {formatDateVE(start)}</p>
             </div>
             <div className="flex items-center gap-2">
               <Badge className={statusBadge[loan.status] ?? ""}>{statusLabel[loan.status] ?? loan.status}</Badge>
@@ -335,7 +335,7 @@ function LoanAdminCard({ loan, pays, channels, chName, adminId, onChanged, onDel
         <CollapsibleContent className="space-y-3 pt-2 border-t border-border mt-2">
           {loan.note && <p className="text-xs text-muted-foreground">Nota: {loan.note}</p>}
           {consolidatedTarget && (
-            <p className="text-xs text-blue-700">Consolidado en préstamo {formatUSD(Number(consolidatedTarget.principal))} del {new Date(consolidatedTarget.created_at).toLocaleDateString("es-VE")}.</p>
+            <p className="text-xs text-blue-700">Consolidado en préstamo {formatUSD(Number(consolidatedTarget.principal))} del {formatDateVE(consolidatedTarget.created_at)}.</p>
           )}
 
           <div>
@@ -398,7 +398,7 @@ function PagoRow({ p, channels, chName, adminId, onChanged }: any) {
     <div className="text-xs py-1 border-b border-border last:border-0">
       <div className="flex justify-between items-start gap-2">
         <div className="min-w-0">
-          <p className="font-medium">{new Date(p.payment_date || p.reported_at).toLocaleDateString("es-VE")} <span className="text-muted-foreground">· {chName(p.channel_id)} · {p.status}</span></p>
+          <p className="font-medium">{formatDateVE(p.payment_date || p.reported_at)} <span className="text-muted-foreground">· {chName(p.channel_id)} · {p.status}</span></p>
           <p>Cap <b>{formatUSD(Number(p.amount_capital))}</b> · Int <b className="text-primary">{formatUSD(Number(p.amount_interest))}</b></p>
         </div>
         <div className="flex gap-1 shrink-0">
@@ -636,7 +636,7 @@ function NuevoPrestamoDialog({ profiles, channels, userId, onCreated }: { profil
   const submit = async () => {
     if (!socioId) return toast.error("Elige un socio");
     const nowIso = new Date().toISOString();
-    const disbursedIso = new Date(disbursedDate).toISOString();
+    const disbursedIso = localDateToIso(disbursedDate);
     const dr = rateType === "daily" ? Number(rateValue) / 100 : Number(rateValue) / 100 / 30;
     const { error } = await supabase.from("loans").insert({
       user_id: socioId, principal: Number(principal),

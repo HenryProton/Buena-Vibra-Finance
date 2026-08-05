@@ -239,7 +239,7 @@ function HistorialAportes({ contribs, nameOf, chName, onDelete }: { contribs: an
                         <p className="text-xs font-medium text-primary">{chName(chId === "sin-canal" ? null : chId)}</p>
                         {items.map((a) => (
                           <div key={a.id} className="flex justify-between items-center text-xs">
-                            <span>{new Date(a.confirmed_at ?? a.created_at).toLocaleDateString("es-VE")}</span>
+                            <span>{formatDateVE(a.confirmed_at ?? a.created_at)}</span>
                             <div className="flex items-center gap-2">
                               <span className="font-semibold">{formatUSD(Number(a.amount))}</span>
                               <Badge variant={a.status === "confirmado" ? "default" : "secondary"} className="text-[10px]">{a.status}</Badge>

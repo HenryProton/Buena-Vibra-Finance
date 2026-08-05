@@ -170,7 +170,7 @@ function LoanCard({ loan, payments, channels, userId, onChanged }: { loan: any; 
       <Collapsible open={expanded} onOpenChange={setExpanded}>
         <CollapsibleContent className="space-y-3 pt-2 border-t border-border">
           <div className="text-xs text-muted-foreground space-y-1">
-            <p>Fecha de desembolso: {start ? new Date(start).toLocaleDateString("es-VE") : "—"}</p>
+            <p>Fecha de desembolso: {start ? formatDateVE(start) : "—"}</p>
             {loan.disbursement_channel_id && <p>Canal de desembolso: {chName(loan.disbursement_channel_id)}</p>}
             {loan.note && <p>Nota: {loan.note}</p>}
           </div>
@@ -184,7 +184,7 @@ function LoanCard({ loan, payments, channels, userId, onChanged }: { loan: any; 
                 {payments.map((p) => (
                   <div key={p.id} className="flex justify-between text-xs py-1 border-b border-border last:border-0">
                     <div>
-                      <p className="font-medium">{new Date(p.payment_date || p.reported_at).toLocaleDateString("es-VE")}</p>
+                      <p className="font-medium">{formatDateVE(p.payment_date || p.reported_at)}</p>
                       <p className="text-muted-foreground">{chName(p.channel_id)} · {p.status}</p>
                     </div>
                     <div className="text-right">
