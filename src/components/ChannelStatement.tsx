@@ -3,8 +3,18 @@ import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { formatUSD, MONTHS_ES } from "@/lib/format";
-import { Download, FileText, Share2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatUSD, MONTHS_ES, formatDateVE } from "@/lib/format";
+import { Download, FileText, Share2, AlertTriangle, CheckCircle2, ArrowUpDown } from "lucide-react";
+
+type SortKey = "fecha_desc" | "fecha_asc" | "monto_desc" | "monto_asc" | "socio";
+const SORT_LABELS: Record<SortKey, string> = {
+  fecha_desc: "Fecha (más reciente)",
+  fecha_asc: "Fecha (más antigua)",
+  monto_desc: "Monto (mayor a menor)",
+  monto_asc: "Monto (menor a mayor)",
+  socio: "Socio (A-Z)",
+};
 
 const CONCEPTS = {
   aporte: "Aportes mensuales",
