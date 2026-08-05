@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
@@ -119,11 +120,11 @@ function ResetPasswordPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="password">Nueva contraseña o PIN</Label>
-                <Input id="password" name="password" type="password" minLength={6} required autoComplete="new-password" />
+                <PasswordInput id="password" name="password"  minLength={6} required autoComplete="new-password" />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm">Repite la contraseña</Label>
-                <Input id="confirm" name="confirm" type="password" minLength={6} required autoComplete="new-password" />
+                <PasswordInput id="confirm" name="confirm"  minLength={6} required autoComplete="new-password" />
               </div>
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Guardando..." : "Guardar contraseña"}

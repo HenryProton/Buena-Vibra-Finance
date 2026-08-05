@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Calculator } from "lucide-react";
-import { formatUSD } from "@/lib/format";
+import { formatUSD, formatDateVE } from "@/lib/format";
 import { projectDebt, rateLabel, type RateType } from "@/lib/loan-math";
 
 type Scope = "mine" | "all";
@@ -106,7 +106,7 @@ function SimNuevo() {
           capital={d.capital}
           interes={d.interes}
           total={d.total}
-          note={`${rateLabel(rateType, Number(rateValue) || 0)} · ${d.days} días (${new Date(fechaInicio).toLocaleDateString("es-VE")} → ${new Date(fechaFin).toLocaleDateString("es-VE")})`}
+          note={`${rateLabel(rateType, Number(rateValue) || 0)} · ${d.days} días (${formatDateVE(fechaInicio)} → ${formatDateVE(fechaFin)})`}
         />
       )}
     </div>
@@ -206,7 +206,7 @@ function SimActivo({ scope, userId }: { scope: Scope; userId?: string }) {
             capital={d.capital}
             interes={d.interes}
             total={d.total}
-            note={`Al ${new Date(fecha).toLocaleDateString("es-VE")} · ${d.days} días desde el desembolso`}
+            note={`Al ${formatDateVE(fecha)} · ${d.days} días desde el desembolso`}
           />
         )
       )}

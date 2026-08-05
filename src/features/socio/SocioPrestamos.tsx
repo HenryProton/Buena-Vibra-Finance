@@ -10,8 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { formatUSD } from "@/lib/format";
-import { projectDebt, rateLabel, type RateType } from "@/lib/loan-math";
+import { formatUSD, formatDateVE } from "@/lib/format";
+import { projectDebt, rateLabel, daysSinceLastPayment, type RateType } from "@/lib/loan-math";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ChevronDown, Calculator } from "lucide-react";
@@ -145,16 +145,24 @@ function LoanCard({ loan, payments, channels, userId, onChanged }: { loan: any; 
     onChanged();
   };
 
+  const diasSinAbono = daysSinceLastPayment(start, confirmed);
+  const atrasado = loan.status === "activo" && diasSinAbono > 30;
 
   return (
-    <Card className="p-4 space-y-3">
+    <Card className={`p-4 space-y-3 ${loan.status === "pagado" ? "border-emerald-500/60 bg-emerald-500/5" : atrasado ? "border-amber-500/70 bg-amber-500/5" : ""}`}>
       <button onClick={() => setExpanded(!expanded)} className="w-full flex items-start justify-between text-left">
         <div>
           <p className="font-bold text-lg">{formatUSD(Number(loan.principal))}</p>
           <p className="text-xs text-muted-foreground">{rateLabel(loan.rate_type as RateType, Number(loan.rate_value))} · {d.days} días</p>
+          <p className="text-xs text-muted-foreground">Canal: {chName(loan.disbursement_channel_id)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <StatusBadge status={loan.status} />
+          <div className="flex flex-col items-end gap-1">
+            <StatusBadge status={loan.status} />
+            {atrasado && (
+              <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400">⚠️ {diasSinAbono} días sin abono</Badge>
+            )}
+          </div>
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} />
         </div>
       </button>
@@ -170,7 +178,7 @@ function LoanCard({ loan, payments, channels, userId, onChanged }: { loan: any; 
       <Collapsible open={expanded} onOpenChange={setExpanded}>
         <CollapsibleContent className="space-y-3 pt-2 border-t border-border">
           <div className="text-xs text-muted-foreground space-y-1">
-            <p>Fecha de desembolso: {start ? new Date(start).toLocaleDateString("es-VE") : "—"}</p>
+            <p>Fecha de desembolso: {start ? formatDateVE(start) : "—"}</p>
             {loan.disbursement_channel_id && <p>Canal de desembolso: {chName(loan.disbursement_channel_id)}</p>}
             {loan.note && <p>Nota: {loan.note}</p>}
           </div>
@@ -184,7 +192,7 @@ function LoanCard({ loan, payments, channels, userId, onChanged }: { loan: any; 
                 {payments.map((p) => (
                   <div key={p.id} className="flex justify-between text-xs py-1 border-b border-border last:border-0">
                     <div>
-                      <p className="font-medium">{new Date(p.payment_date || p.reported_at).toLocaleDateString("es-VE")}</p>
+                      <p className="font-medium">{formatDateVE(p.payment_date || p.reported_at)}</p>
                       <p className="text-muted-foreground">{chName(p.channel_id)} · {p.status}</p>
                     </div>
                     <div className="text-right">

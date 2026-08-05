@@ -1,3 +1,5 @@
+import { parseLocalDate } from "@/lib/format";
+
 export type RateType = "daily" | "monthly";
 
 export type LoanPayment = {
@@ -91,7 +93,7 @@ export function projectDebt(opts: {
   /** Meses pausados en formato "YYYY-MM": no generan intereses. */
   pausedMonths?: string[];
 }) {
-  const start = typeof opts.startDate === "string" ? new Date(opts.startDate) : opts.startDate;
+  const start = parseLocalDate(opts.startDate) ?? new Date();
   const asOf = new Date((opts.asOf ?? new Date()).getTime() + (opts.extraDays ?? 0) * 86400000);
   const dr = dailyRate(opts.rateType, opts.rateValue);
   const paused = new Set(opts.pausedMonths ?? defaultPausedMonths);
@@ -102,7 +104,7 @@ export function projectDebt(opts: {
     const evs = opts.payments
       .filter((p) => (p.status ?? "confirmado") === "confirmado")
       .map((p) => ({
-        date: new Date(p.payment_date || p.reported_at || start),
+        date: parseLocalDate(p.payment_date || p.reported_at) ?? start,
         cap: Number(p.amount_capital) || 0,
         int: Number(p.amount_interest) || 0,
       }))
@@ -155,4 +157,16 @@ export function projectDebt(opts: {
 
 export function isFullyPaid(debt: { capital: number; interes: number }): boolean {
   return debt.capital < 0.01 && debt.interes < 0.01;
+}
+
+/** Días transcurridos desde el último abono confirmado (o desde el desembolso si no hay abonos). */
+export function daysSinceLastPayment(startDate: string | Date, payments: LoanPayment[] = []): number {
+  const dates = payments
+    .filter((p) => (p.status ?? "confirmado") === "confirmado")
+    .map((p) => parseLocalDate(p.payment_date || p.reported_at))
+    .filter((d): d is Date => !!d);
+  const last = dates.length
+    ? new Date(Math.max(...dates.map((d) => d.getTime())))
+    : parseLocalDate(startDate) ?? new Date();
+  return Math.max(0, Math.floor((Date.now() - last.getTime()) / 86400000));
 }

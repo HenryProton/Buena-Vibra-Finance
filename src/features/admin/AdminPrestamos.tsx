@@ -9,12 +9,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { formatUSD } from "@/lib/format";
-import { projectDebt, rateLabel, type RateType } from "@/lib/loan-math";
+import { formatUSD, formatDateVE, localDateToIso } from "@/lib/format";
+import { projectDebt, rateLabel, daysSinceLastPayment, type RateType } from "@/lib/loan-math";
 import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useChannels } from "@/lib/queries";
+import { useChannels, useChannelBalance } from "@/lib/queries";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, ChevronDown, Pencil, Trash2, Merge } from "lucide-react";
 import { LoanSimulator } from "@/components/LoanSimulator";
@@ -259,7 +259,7 @@ function HistorialAbonos({ pays, nameOf, chName }: { pays: any[]; nameOf: (u: st
                 return (
                   <div key={dk} className="p-3 space-y-2">
                     <div className="flex justify-between text-sm">
-                      <span className="font-medium">{dk ? new Date(dk).toLocaleDateString("es-VE") : "Sin fecha"}</span>
+                      <span className="font-medium">{dk ? formatDateVE(dk) : "Sin fecha"}</span>
                       <span className="text-muted-foreground">{formatUSD(dayTotal)}</span>
                     </div>
                     {Object.entries(byCh).map(([chId, items]) => (
@@ -307,20 +307,27 @@ function LoanAdminCard({ loan, pays, channels, chName, adminId, onChanged, onDel
     consolidado: "consolidado",
     rechazado: "rechazado",
   };
-
+  const diasSinAbono = daysSinceLastPayment(start, confirmed);
+  const atrasado = loan.status === "activo" && diasSinAbono > 30;
 
   return (
-    <Card className="p-3 space-y-2">
+    <Card className={`p-3 space-y-2 ${loan.status === "pagado" ? "border-emerald-500/60 bg-emerald-500/5" : atrasado ? "border-amber-500/70 bg-amber-500/5" : ""}`}>
       <Collapsible open={open} onOpenChange={setOpen}>
         <CollapsibleTrigger className="w-full text-left">
           <div className="flex justify-between items-start">
             <div className="min-w-0">
               {nameOf && <p className="text-xs text-muted-foreground truncate">{nameOf(loan.user_id)}</p>}
               <p className="font-bold">{formatUSD(Number(loan.principal))}</p>
-              <p className="text-[11px] text-muted-foreground">{rateLabel(loan.rate_type as RateType, Number(loan.rate_value))} · {new Date(start).toLocaleDateString("es-VE")}</p>
+              <p className="text-[11px] text-muted-foreground">{rateLabel(loan.rate_type as RateType, Number(loan.rate_value))} · {formatDateVE(start)}</p>
+              <p className="text-[11px] text-muted-foreground">Canal: {chName(loan.disbursement_channel_id)}</p>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className={statusBadge[loan.status] ?? ""}>{statusLabel[loan.status] ?? loan.status}</Badge>
+              <div className="flex flex-col items-end gap-1">
+                <Badge className={statusBadge[loan.status] ?? ""}>{statusLabel[loan.status] ?? loan.status}</Badge>
+                {atrasado && (
+                  <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400">⚠️ {diasSinAbono} días sin abono</Badge>
+                )}
+              </div>
               <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
             </div>
           </div>
@@ -335,7 +342,7 @@ function LoanAdminCard({ loan, pays, channels, chName, adminId, onChanged, onDel
         <CollapsibleContent className="space-y-3 pt-2 border-t border-border mt-2">
           {loan.note && <p className="text-xs text-muted-foreground">Nota: {loan.note}</p>}
           {consolidatedTarget && (
-            <p className="text-xs text-blue-700">Consolidado en préstamo {formatUSD(Number(consolidatedTarget.principal))} del {new Date(consolidatedTarget.created_at).toLocaleDateString("es-VE")}.</p>
+            <p className="text-xs text-blue-700">Consolidado en préstamo {formatUSD(Number(consolidatedTarget.principal))} del {formatDateVE(consolidatedTarget.created_at)}.</p>
           )}
 
           <div>
@@ -398,7 +405,7 @@ function PagoRow({ p, channels, chName, adminId, onChanged }: any) {
     <div className="text-xs py-1 border-b border-border last:border-0">
       <div className="flex justify-between items-start gap-2">
         <div className="min-w-0">
-          <p className="font-medium">{new Date(p.payment_date || p.reported_at).toLocaleDateString("es-VE")} <span className="text-muted-foreground">· {chName(p.channel_id)} · {p.status}</span></p>
+          <p className="font-medium">{formatDateVE(p.payment_date || p.reported_at)} <span className="text-muted-foreground">· {chName(p.channel_id)} · {p.status}</span></p>
           <p>Cap <b>{formatUSD(Number(p.amount_capital))}</b> · Int <b className="text-primary">{formatUSD(Number(p.amount_interest))}</b></p>
         </div>
         <div className="flex gap-1 shrink-0">
@@ -632,16 +639,25 @@ function NuevoPrestamoDialog({ profiles, channels, userId, onCreated }: { profil
   const [note, setNote] = useState("");
   const [disbursedDate, setDisbursedDate] = useState(new Date().toISOString().slice(0, 10));
   const activos = profiles.filter((p) => p.status === "activo");
+  const { data: saldo } = useChannelBalance(channelId, open);
+  const monto = Number(principal) || 0;
+  const sinFondos = typeof saldo === "number" && monto > saldo;
 
   const submit = async () => {
     if (!socioId) return toast.error("Elige un socio");
+    if (sinFondos && !note.trim()) {
+      return toast.error("No hay fondos suficientes en esa pasarela. Escribe una nota explicando de dónde sale el dinero.");
+    }
     const nowIso = new Date().toISOString();
-    const disbursedIso = new Date(disbursedDate).toISOString();
+    const disbursedIso = localDateToIso(disbursedDate);
     const dr = rateType === "daily" ? Number(rateValue) / 100 : Number(rateValue) / 100 / 30;
+    const finalNote = sinFondos
+      ? `${note}\n[Aviso: se desembolsó con saldo insuficiente en la pasarela (saldo ${formatUSD(saldo as number)})]`
+      : note;
     const { error } = await supabase.from("loans").insert({
       user_id: socioId, principal: Number(principal),
       rate_type: rateType, rate_value: Number(rateValue), daily_rate: dr,
-      disbursement_channel_id: channelId || null, status: "activo", note,
+      disbursement_channel_id: channelId || null, status: "activo", note: finalNote,
       approved_at: nowIso, approved_by: userId, disbursed_at: disbursedIso,
     });
     if (error) return toast.error(error.message);
@@ -679,7 +695,13 @@ function NuevoPrestamoDialog({ profiles, channels, userId, onCreated }: { profil
               <SelectContent>{channels.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div><Label>Nota</Label><Textarea value={note} onChange={(e) => setNote(e.target.value)} /></div>
+          {typeof saldo === "number" && (
+            <p className={`text-xs ${sinFondos ? "text-amber-700 dark:text-amber-400 font-semibold" : "text-muted-foreground"}`}>
+              Saldo disponible: {formatUSD(saldo)}
+              {sinFondos && ` — ⚠️ No hay fondos suficientes para ${formatUSD(monto)}. Escribe una nota para continuar.`}
+            </p>
+          )}
+          <div><Label>Nota{sinFondos ? " (obligatoria)" : ""}</Label><Textarea value={note} onChange={(e) => setNote(e.target.value)} /></div>
           <Button className="w-full" onClick={submit}>Crear préstamo activo</Button>
         </div>
       </DialogContent>

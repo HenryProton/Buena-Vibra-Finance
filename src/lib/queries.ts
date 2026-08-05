@@ -47,3 +47,15 @@ export function useChannels(onlyActive = false) {
     },
   });
 }
+
+/** Saldo disponible de una pasarela (fuente de verdad en el servidor). Solo admins. */
+export function useChannelBalance(channelId: string | null | undefined, enabled = true) {
+  return useQuery({
+    queryKey: ["channel-balance", channelId],
+    enabled: !!channelId && enabled,
+    queryFn: async () => {
+      const { getChannelBalance } = await import("@/lib/channels.functions");
+      return await getChannelBalance({ data: { channelId: channelId as string } });
+    },
+  });
+}

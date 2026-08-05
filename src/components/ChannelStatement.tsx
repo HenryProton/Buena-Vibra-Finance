@@ -3,8 +3,18 @@ import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { formatUSD, MONTHS_ES } from "@/lib/format";
-import { Download, FileText, Share2, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { formatUSD, MONTHS_ES, formatDateVE } from "@/lib/format";
+import { Download, FileText, Share2, AlertTriangle, CheckCircle2, ArrowUpDown } from "lucide-react";
+
+type SortKey = "fecha_desc" | "fecha_asc" | "monto_desc" | "monto_asc" | "socio";
+const SORT_LABELS: Record<SortKey, string> = {
+  fecha_desc: "Fecha (más reciente)",
+  fecha_asc: "Fecha (más antigua)",
+  monto_desc: "Monto (mayor a menor)",
+  monto_asc: "Monto (menor a mayor)",
+  socio: "Socio (A-Z)",
+};
 
 const CONCEPTS = {
   aporte: "Aportes mensuales",
@@ -37,6 +47,7 @@ export function ChannelStatement({
   payments: any[];
 }) {
   const [open, setOpen] = useState(false);
+  const [sort, setSort] = useState<SortKey>("fecha_desc");
   const nameOf = (uid: string) => profiles.find((p) => p.id === uid)?.full_name ?? "—";
 
   const rows = useMemo<Row[]>(() => {
@@ -74,11 +85,27 @@ export function ChannelStatement({
           monto: Number(l.principal) || 0,
         }),
       );
-    return out.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+    return out;
   }, [channel.id, profiles, contribs, loans, payments]);
 
-  const entradas = rows.filter((r) => r.tipo === "entrada");
-  const salidas = rows.filter((r) => r.tipo === "salida");
+  const sortRows = (list: Row[]) =>
+    [...list].sort((a, b) => {
+      switch (sort) {
+        case "fecha_asc":
+          return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0;
+        case "monto_desc":
+          return b.monto - a.monto;
+        case "monto_asc":
+          return a.monto - b.monto;
+        case "socio":
+          return a.socio.localeCompare(b.socio);
+        default:
+          return a.fecha > b.fecha ? -1 : a.fecha < b.fecha ? 1 : 0;
+      }
+    });
+
+  const entradas = sortRows(rows.filter((r) => r.tipo === "entrada"));
+  const salidas = sortRows(rows.filter((r) => r.tipo === "salida"));
   const totalEntradas = entradas.reduce((a, r) => a + r.monto, 0);
   const totalSalidas = salidas.reduce((a, r) => a + r.monto, 0);
   const saldo = totalEntradas - totalSalidas;
@@ -123,7 +150,7 @@ export function ChannelStatement({
     return a;
   }, [byConcept, saldo, serverBalance, rows]);
 
-  const fmtDate = (d: string) => (d ? new Date(d + "T00:00:00").toLocaleDateString("es-VE") : "—");
+  const fmtDate = (d: string) => formatDateVE(d);
 
   const conceptLines = (tipo: "entrada" | "salida") =>
     (Object.keys(CONCEPTS) as ConceptKey[])
@@ -226,6 +253,18 @@ export function ChannelStatement({
               </ul>
             )}
           </Card>
+
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="h-3 w-3 text-muted-foreground shrink-0" />
+            <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
+                  <SelectItem key={k} value={k} className="text-xs">{SORT_LABELS[k]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
           <Section title="Recibió" rows={entradas} total={totalEntradas} tone="ok" fmtDate={fmtDate} />
           <Section title="Entregó" rows={salidas} total={totalSalidas} tone="warn" fmtDate={fmtDate} />

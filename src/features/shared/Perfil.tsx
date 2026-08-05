@@ -2,6 +2,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme";
@@ -83,7 +84,7 @@ export function Perfil() {
             <p className="text-xs text-muted-foreground">Tu cuenta fue creada por el administrador. Añade tu correo real y cambia la contraseña.</p>
           </div>
           <div className="space-y-1"><Label>Tu correo real</Label><Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="tucorreo@ejemplo.com" /></div>
-          <div className="space-y-1"><Label>Nueva contraseña (opcional, mín 6)</Label><Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
+          <div className="space-y-1"><Label>Nueva contraseña (opcional, mín 6)</Label><PasswordInput  value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
           <Button onClick={updateCreds} disabled={savingCreds} className="w-full">{savingCreds ? "Guardando..." : "Actualizar"}</Button>
         </Card>
       )}
@@ -118,11 +119,11 @@ export function Perfil() {
         </p>
         <div className="space-y-1">
           <Label>Nueva contraseña o PIN</Label>
-          <Input type="password" value={pwd} onChange={(e) => setPwd(e.target.value)} autoComplete="new-password" />
+          <PasswordInput  value={pwd} onChange={(e) => setPwd(e.target.value)} autoComplete="new-password" />
         </div>
         <div className="space-y-1">
           <Label>Repite la contraseña o PIN</Label>
-          <Input type="password" value={pwd2} onChange={(e) => setPwd2(e.target.value)} autoComplete="new-password" />
+          <PasswordInput  value={pwd2} onChange={(e) => setPwd2(e.target.value)} autoComplete="new-password" />
         </div>
         <Button onClick={changePassword} disabled={savingPwd} className="w-full">
           {savingPwd ? "Guardando..." : "Cambiar contraseña"}
