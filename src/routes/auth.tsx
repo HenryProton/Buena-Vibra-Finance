@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/PasswordInput";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -137,7 +138,7 @@ function AuthPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="password">Contraseña</Label>
-                  <Input id="password" name="password" type="password" required autoComplete="current-password" />
+                  <PasswordInput id="password" name="password"  required autoComplete="current-password" />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Ingresando..." : "Ingresar"}
@@ -183,7 +184,7 @@ function AuthPage() {
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="s-password">Contraseña</Label>
-                  <Input id="s-password" name="password" type="password" required minLength={6} autoComplete="new-password" />
+                  <PasswordInput id="s-password" name="password"  required minLength={6} autoComplete="new-password" />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Creando cuenta..." : invite ? "Crear cuenta y activar" : "Crear cuenta"}
