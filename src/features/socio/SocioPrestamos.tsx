@@ -145,16 +145,24 @@ function LoanCard({ loan, payments, channels, userId, onChanged }: { loan: any; 
     onChanged();
   };
 
+  const diasSinAbono = daysSinceLastPayment(start, confirmed);
+  const atrasado = loan.status === "activo" && diasSinAbono > 30;
 
   return (
-    <Card className="p-4 space-y-3">
+    <Card className={`p-4 space-y-3 ${loan.status === "pagado" ? "border-emerald-500/60 bg-emerald-500/5" : atrasado ? "border-amber-500/70 bg-amber-500/5" : ""}`}>
       <button onClick={() => setExpanded(!expanded)} className="w-full flex items-start justify-between text-left">
         <div>
           <p className="font-bold text-lg">{formatUSD(Number(loan.principal))}</p>
           <p className="text-xs text-muted-foreground">{rateLabel(loan.rate_type as RateType, Number(loan.rate_value))} · {d.days} días</p>
+          <p className="text-xs text-muted-foreground">Canal: {chName(loan.disbursement_channel_id)}</p>
         </div>
         <div className="flex items-center gap-2">
-          <StatusBadge status={loan.status} />
+          <div className="flex flex-col items-end gap-1">
+            <StatusBadge status={loan.status} />
+            {atrasado && (
+              <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400">⚠️ {diasSinAbono} días sin abono</Badge>
+            )}
+          </div>
           <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${expanded ? "rotate-180" : ""}`} />
         </div>
       </button>
