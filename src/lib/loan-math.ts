@@ -104,7 +104,7 @@ export function projectDebt(opts: {
     const evs = opts.payments
       .filter((p) => (p.status ?? "confirmado") === "confirmado")
       .map((p) => ({
-        date: new Date(p.payment_date || p.reported_at || start),
+        date: parseLocalDate(p.payment_date || p.reported_at) ?? start,
         cap: Number(p.amount_capital) || 0,
         int: Number(p.amount_interest) || 0,
       }))
