@@ -307,10 +307,11 @@ function LoanAdminCard({ loan, pays, channels, chName, adminId, onChanged, onDel
     consolidado: "consolidado",
     rechazado: "rechazado",
   };
-
+  const diasSinAbono = daysSinceLastPayment(start, confirmed);
+  const atrasado = loan.status === "activo" && diasSinAbono > 30;
 
   return (
-    <Card className="p-3 space-y-2">
+    <Card className={`p-3 space-y-2 ${loan.status === "pagado" ? "border-emerald-500/60 bg-emerald-500/5" : atrasado ? "border-amber-500/70 bg-amber-500/5" : ""}`}>
       <Collapsible open={open} onOpenChange={setOpen}>
         <CollapsibleTrigger className="w-full text-left">
           <div className="flex justify-between items-start">
@@ -318,9 +319,15 @@ function LoanAdminCard({ loan, pays, channels, chName, adminId, onChanged, onDel
               {nameOf && <p className="text-xs text-muted-foreground truncate">{nameOf(loan.user_id)}</p>}
               <p className="font-bold">{formatUSD(Number(loan.principal))}</p>
               <p className="text-[11px] text-muted-foreground">{rateLabel(loan.rate_type as RateType, Number(loan.rate_value))} · {formatDateVE(start)}</p>
+              <p className="text-[11px] text-muted-foreground">Canal: {chName(loan.disbursement_channel_id)}</p>
             </div>
             <div className="flex items-center gap-2">
-              <Badge className={statusBadge[loan.status] ?? ""}>{statusLabel[loan.status] ?? loan.status}</Badge>
+              <div className="flex flex-col items-end gap-1">
+                <Badge className={statusBadge[loan.status] ?? ""}>{statusLabel[loan.status] ?? loan.status}</Badge>
+                {atrasado && (
+                  <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400">⚠️ {diasSinAbono} días sin abono</Badge>
+                )}
+              </div>
               <ChevronDown className={`h-4 w-4 transition-transform ${open ? "rotate-180" : ""}`} />
             </div>
           </div>
