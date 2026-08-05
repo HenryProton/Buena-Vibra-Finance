@@ -14,7 +14,7 @@ import { projectDebt, rateLabel, daysSinceLastPayment, type RateType } from "@/l
 import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useChannels } from "@/lib/queries";
+import { useChannels, useChannelBalance } from "@/lib/queries";
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, ChevronDown, Pencil, Trash2, Merge } from "lucide-react";
 import { LoanSimulator } from "@/components/LoanSimulator";
