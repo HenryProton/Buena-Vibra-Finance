@@ -47,6 +47,7 @@ export function ChannelStatement({
   payments: any[];
 }) {
   const [open, setOpen] = useState(false);
+  const [sort, setSort] = useState<SortKey>("fecha_desc");
   const nameOf = (uid: string) => profiles.find((p) => p.id === uid)?.full_name ?? "—";
 
   const rows = useMemo<Row[]>(() => {
