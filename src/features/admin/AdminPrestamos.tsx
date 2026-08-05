@@ -695,7 +695,13 @@ function NuevoPrestamoDialog({ profiles, channels, userId, onCreated }: { profil
               <SelectContent>{channels.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}</SelectContent>
             </Select>
           </div>
-          <div><Label>Nota</Label><Textarea value={note} onChange={(e) => setNote(e.target.value)} /></div>
+          {typeof saldo === "number" && (
+            <p className={`text-xs ${sinFondos ? "text-amber-700 dark:text-amber-400 font-semibold" : "text-muted-foreground"}`}>
+              Saldo disponible: {formatUSD(saldo)}
+              {sinFondos && ` — ⚠️ No hay fondos suficientes para ${formatUSD(monto)}. Escribe una nota para continuar.`}
+            </p>
+          )}
+          <div><Label>Nota{sinFondos ? " (obligatoria)" : ""}</Label><Textarea value={note} onChange={(e) => setNote(e.target.value)} /></div>
           <Button className="w-full" onClick={submit}>Crear préstamo activo</Button>
         </div>
       </DialogContent>
