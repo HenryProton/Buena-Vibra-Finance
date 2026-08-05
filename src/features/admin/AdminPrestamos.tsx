@@ -639,16 +639,25 @@ function NuevoPrestamoDialog({ profiles, channels, userId, onCreated }: { profil
   const [note, setNote] = useState("");
   const [disbursedDate, setDisbursedDate] = useState(new Date().toISOString().slice(0, 10));
   const activos = profiles.filter((p) => p.status === "activo");
+  const { data: saldo } = useChannelBalance(channelId, open);
+  const monto = Number(principal) || 0;
+  const sinFondos = typeof saldo === "number" && monto > saldo;
 
   const submit = async () => {
     if (!socioId) return toast.error("Elige un socio");
+    if (sinFondos && !note.trim()) {
+      return toast.error("No hay fondos suficientes en esa pasarela. Escribe una nota explicando de dónde sale el dinero.");
+    }
     const nowIso = new Date().toISOString();
     const disbursedIso = localDateToIso(disbursedDate);
     const dr = rateType === "daily" ? Number(rateValue) / 100 : Number(rateValue) / 100 / 30;
+    const finalNote = sinFondos
+      ? `${note}\n[Aviso: se desembolsó con saldo insuficiente en la pasarela (saldo ${formatUSD(saldo as number)})]`
+      : note;
     const { error } = await supabase.from("loans").insert({
       user_id: socioId, principal: Number(principal),
       rate_type: rateType, rate_value: Number(rateValue), daily_rate: dr,
-      disbursement_channel_id: channelId || null, status: "activo", note,
+      disbursement_channel_id: channelId || null, status: "activo", note: finalNote,
       approved_at: nowIso, approved_by: userId, disbursed_at: disbursedIso,
     });
     if (error) return toast.error(error.message);
