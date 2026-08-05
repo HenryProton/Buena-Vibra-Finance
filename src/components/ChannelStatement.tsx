@@ -84,11 +84,27 @@ export function ChannelStatement({
           monto: Number(l.principal) || 0,
         }),
       );
-    return out.sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0));
+    return out;
   }, [channel.id, profiles, contribs, loans, payments]);
 
-  const entradas = rows.filter((r) => r.tipo === "entrada");
-  const salidas = rows.filter((r) => r.tipo === "salida");
+  const sortRows = (list: Row[]) =>
+    [...list].sort((a, b) => {
+      switch (sort) {
+        case "fecha_asc":
+          return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0;
+        case "monto_desc":
+          return b.monto - a.monto;
+        case "monto_asc":
+          return a.monto - b.monto;
+        case "socio":
+          return a.socio.localeCompare(b.socio);
+        default:
+          return a.fecha > b.fecha ? -1 : a.fecha < b.fecha ? 1 : 0;
+      }
+    });
+
+  const entradas = sortRows(rows.filter((r) => r.tipo === "entrada"));
+  const salidas = sortRows(rows.filter((r) => r.tipo === "salida"));
   const totalEntradas = entradas.reduce((a, r) => a + r.monto, 0);
   const totalSalidas = salidas.reduce((a, r) => a + r.monto, 0);
   const saldo = totalEntradas - totalSalidas;
