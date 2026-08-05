@@ -158,3 +158,15 @@ export function projectDebt(opts: {
 export function isFullyPaid(debt: { capital: number; interes: number }): boolean {
   return debt.capital < 0.01 && debt.interes < 0.01;
 }
+
+/** Días transcurridos desde el último abono confirmado (o desde el desembolso si no hay abonos). */
+export function daysSinceLastPayment(startDate: string | Date, payments: LoanPayment[] = []): number {
+  const dates = payments
+    .filter((p) => (p.status ?? "confirmado") === "confirmado")
+    .map((p) => parseLocalDate(p.payment_date || p.reported_at))
+    .filter((d): d is Date => !!d);
+  const last = dates.length
+    ? new Date(Math.max(...dates.map((d) => d.getTime())))
+    : parseLocalDate(startDate) ?? new Date();
+  return Math.max(0, Math.floor((Date.now() - last.getTime()) / 86400000));
+}
