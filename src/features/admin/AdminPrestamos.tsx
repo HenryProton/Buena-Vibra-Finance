@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatUSD, formatDateVE, localDateToIso } from "@/lib/format";
-import { projectDebt, rateLabel, type RateType } from "@/lib/loan-math";
+import { projectDebt, rateLabel, daysSinceLastPayment, type RateType } from "@/lib/loan-math";
 import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
