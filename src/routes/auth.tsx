@@ -29,8 +29,14 @@ function AuthPage() {
   const [inviteCode, setInviteCode] = useState<string>("");
   const [invite, setInvite] = useState<any>(null);
   const [tab, setTab] = useState<"login" | "signup">("login");
+  const [identifier, setIdentifier] = useState("");
+  const [needsPassword, setNeedsPassword] = useState<boolean | null>(null);
   const redeem = useServerFn(redeemInvitation);
   const lookup = useServerFn(lookupInvitation);
+  const lookupAcc = useServerFn(lookupAccount);
+  const login = useServerFn(loginWithIdentifier);
+  const firstLogin = useServerFn(firstTimeLogin);
+
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
