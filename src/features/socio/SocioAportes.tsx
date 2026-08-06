@@ -39,28 +39,41 @@ export function SocioAportes() {
     },
   });
 
+  const { data: abonos = [] } = useContributionPayments(uid);
+
+  const abonosDe = (contributionId: string) => abonos.filter((a) => a.contribution_id === contributionId);
+  const pagadoDelMes = (y: number, m: number) => {
+    const c = aportes.find((a) => a.year === y && a.month === m);
+    return c ? Number(c.amount) || 0 : 0;
+  };
+  const pendienteDelMes = (y: number, m: number) => Math.max(0, aporteMes - pagadoDelMes(y, m));
+
   const reportar = useMutation({
-    mutationFn: async (input: { year: number; month: number; amount: number; note: string; channel_id: string | null }) => {
-      const { error } = await supabase.from("monthly_contributions").insert({
+    mutationFn: async (input: { year: number; month: number; amount: number; note: string; channel_id: string | null; payment_date: string }) => {
+      const contributionId = await ensureContributionId({
         user_id: uid,
         year: input.year,
         month: input.month,
         num_acciones: profile?.num_acciones ?? 1,
-        amount: input.amount,
-        status: "reportado",
-        note: input.note,
-        channel_id: input.channel_id,
-        reported_at: new Date().toISOString(),
       });
-      if (error) throw error;
+      await addContributionPayment({
+        contribution_id: contributionId,
+        user_id: uid,
+        amount: input.amount,
+        channel_id: input.channel_id,
+        payment_date: input.payment_date,
+        note: input.note,
+      });
     },
     onSuccess: () => {
-      toast.success("Aporte reportado. Pendiente de confirmación.");
+      toast.success("Abono registrado. Pendiente de confirmación.");
       qc.invalidateQueries({ queryKey: ["mis-aportes", uid] });
+      qc.invalidateQueries({ queryKey: ["contribution-payments", uid] });
       setOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   // Build cycle months intersected with the socio's own participation window.
   const socioInicio = (profile as any)?.fecha_inicio ?? null;
