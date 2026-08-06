@@ -37,12 +37,14 @@ export function ChannelStatement({
   channel,
   profiles,
   contribs,
+  contribPayments = [],
   loans,
   payments,
 }: {
   channel: { id: string; nombre: string };
   profiles: any[];
   contribs: any[];
+  contribPayments?: any[];
   loans: any[];
   payments: any[];
 }) {
@@ -52,18 +54,22 @@ export function ChannelStatement({
 
   const rows = useMemo<Row[]>(() => {
     const out: Row[] = [];
-    contribs
-      .filter((c) => c.channel_id === channel.id && c.status === "confirmado")
-      .forEach((c) =>
+    contribPayments
+      .filter((cp) => {
+        const parent = contribs.find((c) => c.id === cp.contribution_id);
+        return cp.channel_id === channel.id && parent?.status === "confirmado";
+      })
+      .forEach((cp) => {
+        const parent = contribs.find((c) => c.id === cp.contribution_id);
         out.push({
-          fecha: (c.confirmed_at ?? c.reported_at ?? c.created_at ?? "").slice(0, 10),
-          socio: nameOf(c.user_id),
-          concepto: `Aporte mensual ${MONTHS_ES[(c.month ?? 1) - 1] ?? ""} ${c.year ?? ""}`.trim(),
+          fecha: String(cp.payment_date ?? "").slice(0, 10),
+          socio: nameOf(cp.user_id),
+          concepto: `Aporte mensual ${MONTHS_ES[(parent?.month ?? 1) - 1] ?? ""} ${parent?.year ?? ""}`.trim(),
           key: "aporte",
           tipo: "entrada",
-          monto: Number(c.amount) || 0,
-        }),
-      );
+          monto: Number(cp.amount) || 0,
+        });
+      });
     payments
       .filter((p) => p.channel_id === channel.id && p.status === "confirmado")
       .forEach((p) => {
@@ -86,7 +92,7 @@ export function ChannelStatement({
         }),
       );
     return out;
-  }, [channel.id, profiles, contribs, loans, payments]);
+  }, [channel.id, profiles, contribs, contribPayments, loans, payments]);
 
   const sortRows = (list: Row[]) =>
     [...list].sort((a, b) => {
