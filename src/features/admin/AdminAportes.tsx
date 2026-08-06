@@ -12,7 +12,9 @@ import { formatUSD, MONTHS_ES, formatDateVE } from "@/lib/format";
 import { toast } from "sonner";
 import { useAuth } from "@/lib/auth-context";
 import { useState } from "react";
-import { useCajaSettings, useChannels } from "@/lib/queries";
+import { useCajaSettings, useChannels, useContributionPayments } from "@/lib/queries";
+import { ensureContributionId, addContributionPayment, deleteContributionPayment } from "@/lib/contributions";
+import { todayLocalISODate } from "@/lib/format";
 import { Check, X, Trash2 } from "lucide-react";
 
 export function AdminAportes() {
@@ -20,6 +22,7 @@ export function AdminAportes() {
   const { user } = useAuth();
   const { data: settings } = useCajaSettings();
   const { data: channels = [] } = useChannels();
+  const { data: abonos = [] } = useContributionPayments();
 
   const { data } = useQuery({
     queryKey: ["admin-aportes"],
@@ -43,25 +46,32 @@ export function AdminAportes() {
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const upsertPago = useMutation({
-    mutationFn: async (v: { user_id: string; year: number; month: number; amount: number; channel_id: string | null; num_acciones: number }) => {
-      const existing = (data?.contribs ?? []).find((c) => c.user_id === v.user_id && c.year === v.year && c.month === v.month);
-      if (existing) {
-        const { error } = await supabase.from("monthly_contributions").update({
-          amount: v.amount, channel_id: v.channel_id, status: "confirmado",
-          confirmed_at: new Date().toISOString(), confirmed_by: user!.id,
-        }).eq("id", existing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from("monthly_contributions").insert({
-          user_id: v.user_id, year: v.year, month: v.month, num_acciones: v.num_acciones,
-          amount: v.amount, status: "confirmado", channel_id: v.channel_id,
-          confirmed_at: new Date().toISOString(), confirmed_by: user!.id,
+  const addAbono = useMutation({
+    mutationFn: async (v: { user_id: string; year: number; month: number; amount: number; channel_id: string | null; num_acciones: number; payment_date: string; confirmar: boolean }) => {
+      const contributionId = await ensureContributionId({
+        user_id: v.user_id, year: v.year, month: v.month, num_acciones: v.num_acciones,
+        confirmado: v.confirmar, confirmed_by: user!.id,
+      });
+      if (v.amount > 0) {
+        await addContributionPayment({
+          contribution_id: contributionId, user_id: v.user_id, amount: v.amount,
+          channel_id: v.channel_id, payment_date: v.payment_date,
         });
+      }
+      if (v.confirmar) {
+        const { error } = await supabase.from("monthly_contributions").update({
+          status: "confirmado", confirmed_at: new Date().toISOString(), confirmed_by: user!.id,
+        }).eq("id", contributionId);
         if (error) throw error;
       }
     },
-    onSuccess: () => { toast.success("Guardado"); qc.invalidateQueries({ queryKey: ["admin-aportes"] }); },
+    onSuccess: () => { toast.success("Guardado"); qc.invalidateQueries({ queryKey: ["admin-aportes"] }); qc.invalidateQueries({ queryKey: ["contribution-payments", "all"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const removeAbono = useMutation({
+    mutationFn: (id: string) => deleteContributionPayment(id),
+    onSuccess: () => { toast.success("Abono eliminado"); qc.invalidateQueries({ queryKey: ["admin-aportes"] }); qc.invalidateQueries({ queryKey: ["contribution-payments", "all"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
@@ -142,7 +152,9 @@ export function AdminAportes() {
                               channels={channels}
                               chName={chName}
                               cls={isPastOrCurrent ? bg : "bg-muted/20"}
-                              onSave={(vals: { amount: number; channel_id: string | null }) => upsertPago.mutate({ user_id: p.id, year: c.year, month: c.month, num_acciones: p.num_acciones || 1, ...vals })}
+                              abonos={abonos.filter((ab) => found && ab.contribution_id === found.id)}
+                              onAddAbono={(vals: { amount: number; channel_id: string | null; payment_date: string; confirmar: boolean }) => addAbono.mutate({ user_id: p.id, year: c.year, month: c.month, num_acciones: p.num_acciones || 1, ...vals })}
+                              onDeleteAbono={(id: string) => removeAbono.mutate(id)}
                               onDelete={found ? () => deleteContrib.mutate(found.id) : undefined}
                             />
                           </td>
@@ -169,6 +181,13 @@ export function AdminAportes() {
                   <p className="font-medium">{nameOf(a.user_id)}</p>
                   <p className="text-xs text-muted-foreground">{MONTHS_ES[a.month - 1]} {a.year} · Canal: {chName(a.channel_id)}</p>
                   {a.note && <p className="text-xs mt-1">{a.note}</p>}
+                  <div className="mt-1 space-y-0.5">
+                    {abonos.filter((ab) => ab.contribution_id === a.id).map((ab) => (
+                      <p key={ab.id} className="text-[11px] text-muted-foreground">
+                        • {formatUSD(Number(ab.amount))} — {formatDateVE(ab.payment_date)} — {chName(ab.channel_id)}
+                      </p>
+                    ))}
+                  </div>
                 </div>
                 <p className="font-bold">{formatUSD(Number(a.amount))}</p>
               </div>
@@ -263,10 +282,13 @@ function HistorialAportes({ contribs, nameOf, chName, onDelete }: { contribs: an
 }
 
 
-function CeldaAporte({ profile, year, month, existing, aporteMes, channels, chName, cls, onSave, onDelete }: any) {
+function CeldaAporte({ profile, year, month, existing, aporteMes, channels, chName, cls, abonos = [], onAddAbono, onDeleteAbono, onDelete }: any) {
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState(String(existing?.amount ?? aporteMes));
+  const pagado = abonos.reduce((a: number, x: any) => a + Number(x.amount), 0);
+  const falta = Math.max(0, aporteMes - pagado);
+  const [amount, setAmount] = useState(String(falta || aporteMes));
   const [channelId, setChannelId] = useState(existing?.channel_id ?? channels[0]?.id ?? "");
+  const [fecha, setFecha] = useState(todayLocalISODate());
   const label = existing?.status === "confirmado" ? "✓" : existing?.status === "reportado" ? "!" : "·";
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -276,24 +298,59 @@ function CeldaAporte({ profile, year, month, existing, aporteMes, channels, chNa
       <DialogContent>
         <DialogHeader><DialogTitle>{profile.full_name} — {MONTHS_ES[month - 1]} {year}</DialogTitle></DialogHeader>
         <div className="space-y-3">
-          <div className="space-y-1">
-            <Label>Canal</Label>
-            <Select value={channelId} onValueChange={setChannelId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{channels.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}</SelectContent>
-            </Select>
+          <div className="rounded-md border border-border bg-muted/30 p-2 text-xs space-y-1">
+            <div className="flex justify-between"><span>Esperado del mes</span><b>{formatUSD(aporteMes)}</b></div>
+            <div className="flex justify-between"><span>Abonado</span><b className="text-primary">{formatUSD(pagado)}</b></div>
+            <div className="flex justify-between"><span>Falta</span><b className={falta > 0 ? "text-destructive" : "text-emerald-600"}>{formatUSD(falta)}</b></div>
+            {existing && <p className="text-muted-foreground pt-1 border-t border-border">Estado: {existing.status}</p>}
+          </div>
+
+          {abonos.length > 0 && (
+            <div className="space-y-1">
+              <Label className="text-xs">Abonos registrados</Label>
+              {abonos.map((ab: any) => (
+                <div key={ab.id} className="flex items-center justify-between text-xs rounded bg-muted/40 px-2 py-1">
+                  <span>{formatDateVE(ab.payment_date)} · {chName(ab.channel_id)}</span>
+                  <span className="flex items-center gap-2">
+                    <b>{formatUSD(Number(ab.amount))}</b>
+                    <Button size="sm" variant="ghost" className="h-6 px-1 text-destructive" onClick={() => onDeleteAbono(ab.id)}>
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label>Pasarela</Label>
+              <Select value={channelId} onValueChange={setChannelId}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{channels.map((c: any) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <Label>Fecha</Label>
+              <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+            </div>
           </div>
           <div className="space-y-1">
-            <Label>Monto</Label>
+            <Label>Monto del abono</Label>
             <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} />
           </div>
-          {existing && <p className="text-xs text-muted-foreground">Estado actual: {existing.status} · Canal: {chName(existing.channel_id)}</p>}
-          <Button className="w-full" onClick={() => { onSave({ amount: Number(amount), channel_id: channelId || null }); setOpen(false); }}>
-            {existing ? "Actualizar y confirmar" : "Registrar y confirmar"}
-          </Button>
+
+          <div className="flex gap-2">
+            <Button className="flex-1" onClick={() => { onAddAbono({ amount: Number(amount), channel_id: channelId || null, payment_date: fecha, confirmar: false }); setOpen(false); }}>
+              Agregar abono
+            </Button>
+            <Button variant="secondary" className="flex-1" onClick={() => { onAddAbono({ amount: Number(amount) || 0, channel_id: channelId || null, payment_date: fecha, confirmar: true }); setOpen(false); }}>
+              Guardar y confirmar mes
+            </Button>
+          </div>
           {existing && onDelete && (
-            <Button variant="destructive" className="w-full" onClick={() => { if (window.confirm("¿Eliminar este aporte?")) { onDelete(); setOpen(false); } }}>
-              Eliminar aporte
+            <Button variant="destructive" className="w-full" onClick={() => { if (window.confirm("¿Eliminar el mes completo con todos sus abonos?")) { onDelete(); setOpen(false); } }}>
+              Eliminar mes completo
             </Button>
           )}
         </div>
