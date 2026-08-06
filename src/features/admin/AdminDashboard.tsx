@@ -5,9 +5,11 @@ import { formatUSD } from "@/lib/format";
 import { projectDebt, type RateType } from "@/lib/loan-math";
 import { useChannels } from "@/lib/queries";
 import { ChannelStatement } from "@/components/ChannelStatement";
+import { useContributionPayments } from "@/lib/queries";
 import { Users, Wallet, HandCoins, Clock, Landmark, TrendingUp, TrendingDown } from "lucide-react";
 
 export function AdminDashboard() {
+  const { data: contribPayments = [] } = useContributionPayments();
   const { data: channels = [] } = useChannels(false);
   const { data } = useQuery({
     queryKey: ["admin-dashboard"],
@@ -117,6 +119,7 @@ export function AdminDashboard() {
                 channel={ch}
                 profiles={profiles}
                 contribs={contribs}
+                contribPayments={contribPayments}
                 loans={loans}
                 payments={payments}
               />

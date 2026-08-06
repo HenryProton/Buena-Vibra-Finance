@@ -10,11 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { formatUSD, MONTHS_ES, formatDateVE } from "@/lib/format";
+import { formatUSD, MONTHS_ES, formatDateVE, todayLocalISODate } from "@/lib/format";
+import { ensureContributionId, addContributionPayment } from "@/lib/contributions";
+
 import { useState } from "react";
 import { toast } from "sonner";
 import { Check, Clock, AlertCircle, BarChart3, PauseCircle, Sparkles } from "lucide-react";
-import { useCajaSettings, useChannels, useCajaPauses } from "@/lib/queries";
+import { useCajaSettings, useChannels, useCajaPauses, useContributionPayments } from "@/lib/queries";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 export function SocioAportes() {
@@ -37,28 +39,41 @@ export function SocioAportes() {
     },
   });
 
+  const { data: abonos = [] } = useContributionPayments(uid);
+
+  const abonosDe = (contributionId: string) => abonos.filter((a) => a.contribution_id === contributionId);
+  const pagadoDelMes = (y: number, m: number) => {
+    const c = aportes.find((a) => a.year === y && a.month === m);
+    return c ? Number(c.amount) || 0 : 0;
+  };
+  const pendienteDelMes = (y: number, m: number) => Math.max(0, aporteMes - pagadoDelMes(y, m));
+
   const reportar = useMutation({
-    mutationFn: async (input: { year: number; month: number; amount: number; note: string; channel_id: string | null }) => {
-      const { error } = await supabase.from("monthly_contributions").insert({
+    mutationFn: async (input: { year: number; month: number; amount: number; note: string; channel_id: string | null; payment_date: string }) => {
+      const contributionId = await ensureContributionId({
         user_id: uid,
         year: input.year,
         month: input.month,
         num_acciones: profile?.num_acciones ?? 1,
-        amount: input.amount,
-        status: "reportado",
-        note: input.note,
-        channel_id: input.channel_id,
-        reported_at: new Date().toISOString(),
       });
-      if (error) throw error;
+      await addContributionPayment({
+        contribution_id: contributionId,
+        user_id: uid,
+        amount: input.amount,
+        channel_id: input.channel_id,
+        payment_date: input.payment_date,
+        note: input.note,
+      });
     },
     onSuccess: () => {
-      toast.success("Aporte reportado. Pendiente de confirmación.");
+      toast.success("Abono registrado. Pendiente de confirmación.");
       qc.invalidateQueries({ queryKey: ["mis-aportes", uid] });
+      qc.invalidateQueries({ queryKey: ["contribution-payments", uid] });
       setOpen(false);
     },
     onError: (e: Error) => toast.error(e.message),
   });
+
 
   // Build cycle months intersected with the socio's own participation window.
   const socioInicio = (profile as any)?.fecha_inicio ?? null;
@@ -93,10 +108,10 @@ export function SocioAportes() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Mis aportes</h2>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button size="sm">Reportar pago</Button></DialogTrigger>
+          <DialogTrigger asChild><Button size="sm">Registrar abono</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Reportar aporte mensual</DialogTitle></DialogHeader>
-            <ReportarForm defaultAmount={aporteMes} channels={channels} onSubmit={(v) => reportar.mutate(v)} loading={reportar.isPending} />
+            <DialogHeader><DialogTitle>Abonar a mi mensualidad</DialogTitle></DialogHeader>
+            <ReportarForm defaultAmount={aporteMes} channels={channels} onSubmit={(v) => reportar.mutate(v)} loading={reportar.isPending} pendienteDelMes={pendienteDelMes} />
           </DialogContent>
         </Dialog>
       </div>
@@ -322,25 +337,50 @@ export function SocioAportes() {
         {aportes.length === 0 && (
           <Card className="p-6 text-center text-sm text-muted-foreground">Aún no hay aportes registrados.</Card>
         )}
-        {aportes.map((a) => (
-          <Card key={a.id} className="p-3 flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm flex items-center gap-1">
-                {MONTHS_ES[a.month - 1]} {a.year}
-                {isPausedMonth(a.year, a.month) && (
-                  <Badge variant="outline" className="text-[10px] border-blue-500/40 bg-blue-500/10 text-blue-600">
-                    <Sparkles className="h-3 w-3 mr-1" />Aporte especial
-                  </Badge>
-                )}
-              </p>
-              <p className="text-xs text-muted-foreground">{a.num_acciones} acción(es)</p>
-            </div>
-            <div className="text-right">
-              <p className="font-bold text-sm">{formatUSD(Number(a.amount))}</p>
-              <StatusBadge status={a.status} />
-            </div>
-          </Card>
-        ))}
+        {aportes.map((a) => {
+          const misAbonos = abonosDe(a.id);
+          const esperado = (a.num_acciones || 1) * Number(settings?.aporte_mensual ?? 10);
+          const falta = Math.max(0, esperado - Number(a.amount));
+          return (
+            <Card key={a.id} className="p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm flex items-center gap-1">
+                    {MONTHS_ES[a.month - 1]} {a.year}
+                    {isPausedMonth(a.year, a.month) && (
+                      <Badge variant="outline" className="text-[10px] border-blue-500/40 bg-blue-500/10 text-blue-600">
+                        <Sparkles className="h-3 w-3 mr-1" />Aporte especial
+                      </Badge>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{a.num_acciones} acción(es) · {misAbonos.length} abono(s)</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-sm">{formatUSD(Number(a.amount))}</p>
+                  <StatusBadge status={a.status} />
+                </div>
+              </div>
+              {misAbonos.length > 0 && (
+                <div className="rounded-md bg-muted/30 p-2 space-y-1">
+                  {misAbonos.map((ab) => (
+                    <div key={ab.id} className="flex justify-between text-[11px]">
+                      <span className="text-muted-foreground">
+                        {formatDateVE(ab.payment_date)} · {channels.find((c) => c.id === ab.channel_id)?.nombre ?? "Sin pasarela"}
+                      </span>
+                      <span className="font-medium">{formatUSD(Number(ab.amount))}</span>
+                    </div>
+                  ))}
+                  {falta > 0 && a.status !== "confirmado" && (
+                    <p className="text-[11px] text-destructive pt-1 border-t border-border">
+                      Falta por abonar: {formatUSD(falta)}
+                    </p>
+                  )}
+                </div>
+              )}
+            </Card>
+          );
+        })}
+
       </div>
     </div>
   );
@@ -377,16 +417,22 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge variant="outline"><AlertCircle className="h-3 w-3 mr-1" />Pendiente</Badge>;
 }
 
-function ReportarForm({ defaultAmount, channels, onSubmit, loading }: { defaultAmount: number; channels: any[]; onSubmit: (v: { year: number; month: number; amount: number; note: string; channel_id: string | null }) => void; loading: boolean }) {
+function ReportarForm({ defaultAmount, channels, onSubmit, loading, pendienteDelMes }: { defaultAmount: number; channels: any[]; onSubmit: (v: { year: number; month: number; amount: number; note: string; channel_id: string | null; payment_date: string }) => void; loading: boolean; pendienteDelMes: (y: number, m: number) => number }) {
   const now = new Date();
   const [year, setYear] = useState(String(now.getFullYear()));
   const [month, setMonth] = useState(String(now.getMonth() + 1));
   const [amount, setAmount] = useState(String(defaultAmount));
   const [note, setNote] = useState("");
   const [channelId, setChannelId] = useState<string>(channels[0]?.id ?? "");
+  const [fecha, setFecha] = useState(todayLocalISODate());
+
+  const falta = pendienteDelMes(Number(year), Number(month));
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ year: Number(year), month: Number(month), amount: Number(amount), note, channel_id: channelId || null }); }} className="space-y-3">
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ year: Number(year), month: Number(month), amount: Number(amount), note, channel_id: channelId || null, payment_date: fecha }); }} className="space-y-3">
+      <p className="text-xs text-muted-foreground">
+        Puedes pagar tu mensualidad en varias partes y por diferentes pasarelas. Cada abono queda registrado por separado.
+      </p>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label>Mes</Label>
@@ -400,22 +446,37 @@ function ReportarForm({ defaultAmount, channels, onSubmit, loading }: { defaultA
           <Input type="number" value={year} onChange={(e) => setYear(e.target.value)} />
         </div>
       </div>
-      <div className="space-y-1">
-        <Label>Canal</Label>
-        <Select value={channelId} onValueChange={setChannelId}>
-          <SelectTrigger><SelectValue placeholder="Elegir canal" /></SelectTrigger>
-          <SelectContent>{channels.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}</SelectContent>
-        </Select>
+      <div className="rounded-md border border-border bg-muted/30 p-2 text-xs">
+        Falta por abonar de este mes: <span className="font-bold">{formatUSD(Math.max(0, falta))}</span>
+        {falta > 0 && (
+          <Button type="button" variant="ghost" size="sm" className="h-6 ml-2 text-[11px]" onClick={() => setAmount(String(falta.toFixed(2)))}>
+            Usar este monto
+          </Button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label>Pasarela</Label>
+          <Select value={channelId} onValueChange={setChannelId}>
+            <SelectTrigger><SelectValue placeholder="Elegir canal" /></SelectTrigger>
+            <SelectContent>{channels.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label>Fecha del abono</Label>
+          <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+        </div>
       </div>
       <div className="space-y-1">
-        <Label>Monto (USD)</Label>
+        <Label>Monto del abono (USD)</Label>
         <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
       </div>
       <div className="space-y-1">
         <Label>Nota (referencia)</Label>
         <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ej: Transferencia #1234" />
       </div>
-      <Button type="submit" className="w-full" disabled={loading}>{loading ? "Enviando..." : "Reportar"}</Button>
+      <Button type="submit" className="w-full" disabled={loading}>{loading ? "Enviando..." : "Registrar abono"}</Button>
     </form>
   );
 }
+

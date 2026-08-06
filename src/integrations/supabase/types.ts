@@ -95,6 +95,60 @@ export type Database = {
         }
         Relationships: []
       }
+      contribution_payments: {
+        Row: {
+          amount: number
+          channel_id: string | null
+          contribution_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          payment_date: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          channel_id?: string | null
+          contribution_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          payment_date?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          channel_id?: string | null
+          contribution_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          payment_date?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "contribution_payments_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "contribution_payments_contribution_id_fkey"
+            columns: ["contribution_id"]
+            isOneToOne: false
+            referencedRelation: "monthly_contributions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           code: string
@@ -341,6 +395,7 @@ export type Database = {
           id: string
           joined_at: string
           num_acciones: number
+          password_set: boolean
           phone: string | null
           status: Database["public"]["Enums"]["profile_status"]
           theme_preference: string
@@ -355,6 +410,7 @@ export type Database = {
           id: string
           joined_at?: string
           num_acciones?: number
+          password_set?: boolean
           phone?: string | null
           status?: Database["public"]["Enums"]["profile_status"]
           theme_preference?: string
@@ -369,6 +425,7 @@ export type Database = {
           id?: string
           joined_at?: string
           num_acciones?: number
+          password_set?: boolean
           phone?: string | null
           status?: Database["public"]["Enums"]["profile_status"]
           theme_preference?: string

@@ -23,7 +23,9 @@ export function Perfil() {
   const [saving, setSaving] = useState(false);
 
   const isPlaceholderEmail = !!user?.email?.endsWith("@buenavibra.local");
+  const needsOnboarding = isPlaceholderEmail || (profile as any)?.password_set === false || !profile?.phone;
   const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState(profile?.phone ?? "");
   const [newPassword, setNewPassword] = useState("");
   const [savingCreds, setSavingCreds] = useState(false);
 
@@ -41,33 +43,50 @@ export function Perfil() {
     refresh();
   }
 
+  async function markPasswordSet() {
+    if (!profile) return;
+    await supabase.from("profiles").update({ password_set: true } as never).eq("id", profile.id);
+  }
+
   async function changePassword() {
     if (pwd.length < 6) return toast.error("La contraseña o PIN debe tener al menos 6 caracteres");
     if (pwd !== pwd2) return toast.error("Las contraseñas no coinciden");
     setSavingPwd(true);
     const { error } = await supabase.auth.updateUser({ password: pwd });
+    if (!error) await markPasswordSet();
     setSavingPwd(false);
     if (error) return toast.error(error.message);
     toast.success("Contraseña actualizada");
     setPwd("");
     setPwd2("");
+    refresh();
   }
 
   async function updateCreds() {
+    if (!newEmail.trim() && isPlaceholderEmail) return toast.error("Necesitamos tu correo real");
+    if (!newPhone.trim()) return toast.error("Necesitamos tu número de teléfono");
     const patch: { email?: string; password?: string } = {};
     if (newEmail.trim()) patch.email = newEmail.trim();
     if (newPassword) {
       if (newPassword.length < 6) return toast.error("La contraseña debe tener al menos 6 caracteres");
       patch.password = newPassword;
     }
-    if (!patch.email && !patch.password) return toast.error("Nada que actualizar");
     setSavingCreds(true);
-    const { error } = await supabase.auth.updateUser(patch);
+    if (patch.email || patch.password) {
+      const { error } = await supabase.auth.updateUser(patch);
+      if (error) { setSavingCreds(false); return toast.error(error.message); }
+    }
+    const profilePatch: Record<string, unknown> = { phone: newPhone.trim() };
+    if (patch.password) profilePatch.password_set = true;
+    const { error: pErr } = await supabase.from("profiles").update(profilePatch as never).eq("id", profile!.id);
     setSavingCreds(false);
-    if (error) return toast.error(error.message);
-    toast.success(patch.email ? "Revisa tu correo para confirmar el cambio de email" : "Contraseña actualizada");
+    if (pErr) return toast.error(pErr.message);
+    toast.success(patch.email ? "Revisa tu correo para confirmar el cambio de email" : "Datos actualizados");
     setNewEmail(""); setNewPassword("");
+    setPhone(newPhone.trim());
+    refresh();
   }
+
 
 
   async function logout() {
@@ -77,17 +96,21 @@ export function Perfil() {
 
   return (
     <div className="space-y-4">
-      {isPlaceholderEmail && (
+      {needsOnboarding && (
         <Card className="p-4 space-y-3 border-primary bg-primary/5">
           <div>
-            <h3 className="font-semibold">Configura tu correo y contraseña</h3>
-            <p className="text-xs text-muted-foreground">Tu cuenta fue creada por el administrador. Añade tu correo real y cambia la contraseña.</p>
+            <h3 className="font-semibold">Completa tus datos para usar la app</h3>
+            <p className="text-xs text-muted-foreground">
+              Entraste solo con tu nombre. Añade tu correo y tu teléfono; si quieres, define también una contraseña o PIN.
+            </p>
           </div>
           <div className="space-y-1"><Label>Tu correo real</Label><Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="tucorreo@ejemplo.com" /></div>
-          <div className="space-y-1"><Label>Nueva contraseña (opcional, mín 6)</Label><PasswordInput  value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
-          <Button onClick={updateCreds} disabled={savingCreds} className="w-full">{savingCreds ? "Guardando..." : "Actualizar"}</Button>
+          <div className="space-y-1"><Label>Tu teléfono</Label><Input type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="0412 000 0000" /></div>
+          <div className="space-y-1"><Label>Contraseña o PIN (opcional, mín 6)</Label><PasswordInput value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
+          <Button onClick={updateCreds} disabled={savingCreds} className="w-full">{savingCreds ? "Guardando..." : "Guardar mis datos"}</Button>
         </Card>
       )}
+
 
       <Card className="p-4 space-y-3">
         <h3 className="font-semibold">Mis datos</h3>

@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Star, Trophy, CalendarClock } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Star, Trophy, CalendarClock, ChevronLeft, ChevronRight, TrendingUp, TrendingDown } from "lucide-react";
 
 type RowAporte = {
   posicion: number;
@@ -23,6 +26,19 @@ type RowPrestamo = {
   al_dia: boolean;
   estrellas: number;
 };
+
+const PAGE_SIZE = 8;
+
+function useRanking<T>(name: "ranking_aportes" | "ranking_prestamos") {
+  return useQuery({
+    queryKey: [name],
+    queryFn: async () => {
+      const { data, error } = await (supabase as never as { rpc: (n: string) => Promise<{ data: T[] | null; error: Error | null }> }).rpc(name);
+      if (error) throw error;
+      return (data ?? []) as T[];
+    },
+  });
+}
 
 function Stars({ n }: { n: number }) {
   return (
@@ -75,16 +91,50 @@ function RowShell({
   );
 }
 
-export function RankingAportes({ admin }: { admin: boolean }) {
-  const { data = [], isLoading } = useQuery({
-    queryKey: ["ranking-aportes"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc("ranking_aportes");
-      if (error) throw error;
-      return (data ?? []) as RowAporte[];
-    },
-  });
+/** Paginación que siempre deja visible la fila del socio. */
+function Paginated<T extends { posicion: number; es_yo: boolean }>({
+  rows,
+  render,
+}: {
+  rows: T[];
+  render: (r: T) => React.ReactNode;
+}) {
+  const myIndex = rows.findIndex((r) => r.es_yo);
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const [page, setPage] = useState(() => (myIndex >= 0 ? Math.floor(myIndex / PAGE_SIZE) : 0));
+  const safePage = Math.min(page, totalPages - 1);
+  const slice = rows.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
+  const me = myIndex >= 0 ? rows[myIndex] : null;
+  const meVisible = me ? slice.some((r) => r.es_yo) : true;
 
+  return (
+    <div className="space-y-1.5">
+      {!meVisible && me && (
+        <>
+          {render(me)}
+          <p className="text-[10px] text-muted-foreground text-center">— tu posición —</p>
+        </>
+      )}
+      {slice.map((r) => render(r))}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <Button variant="outline" size="sm" className="h-8" disabled={safePage === 0} onClick={() => setPage(safePage - 1)}>
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-[11px] text-muted-foreground">
+            Página {safePage + 1} de {totalPages} · {rows.length} socio(s)
+          </span>
+          <Button variant="outline" size="sm" className="h-8" disabled={safePage >= totalPages - 1} onClick={() => setPage(safePage + 1)}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function RankingAportes({ admin }: { admin: boolean }) {
+  const { data = [], isLoading } = useRanking<RowAporte>("ranking_aportes");
   if (isLoading || data.length === 0) return null;
 
   return (
@@ -98,8 +148,9 @@ export function RankingAportes({ admin }: { admin: boolean }) {
           ? "Lista completa de socios según los meses que llevan pagados."
           : "Ves tu posición; por privacidad los nombres de los demás socios no se muestran."}
       </p>
-      <div className="space-y-1.5">
-        {data.map((r) => (
+      <Paginated
+        rows={data}
+        render={(r) => (
           <RowShell
             key={r.posicion}
             pos={r.posicion}
@@ -109,22 +160,14 @@ export function RankingAportes({ admin }: { admin: boolean }) {
             sub={`${r.meses_pagados} de ${r.meses_esperados} mes(es) al día`}
             right={<span className="font-semibold">{Number(r.cumplimiento)}%</span>}
           />
-        ))}
-      </div>
+        )}
+      />
     </Card>
   );
 }
 
 export function RankingPrestamos({ admin }: { admin: boolean }) {
-  const { data = [], isLoading } = useQuery({
-    queryKey: ["ranking-prestamos"],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc("ranking_prestamos");
-      if (error) throw error;
-      return (data ?? []) as RowPrestamo[];
-    },
-  });
-
+  const { data = [], isLoading } = useRanking<RowPrestamo>("ranking_prestamos");
   if (isLoading || data.length === 0) return null;
 
   return (
@@ -138,8 +181,9 @@ export function RankingPrestamos({ admin }: { admin: boolean }) {
           ? "Socios con préstamos activos, ordenados por qué tan reciente fue su último abono."
           : "Ves tu posición; los nombres de los demás socios se mantienen privados."}
       </p>
-      <div className="space-y-1.5">
-        {data.map((r) => (
+      <Paginated
+        rows={data}
+        render={(r) => (
           <RowShell
             key={r.posicion}
             pos={r.posicion}
@@ -159,8 +203,63 @@ export function RankingPrestamos({ admin }: { admin: boolean }) {
               </Badge>
             }
           />
-        ))}
-      </div>
+        )}
+      />
     </Card>
+  );
+}
+
+type Change = { label: string; prev: number; now: number };
+
+/** Avisa en el panel de inicio cuando cambia la posición del socio en algún ranking. */
+export function RankingAlerts({ userId }: { userId: string }) {
+  const { data: aportes = [] } = useRanking<RowAporte>("ranking_aportes");
+  const { data: prestamos = [] } = useRanking<RowPrestamo>("ranking_prestamos");
+  const [changes, setChanges] = useState<Change[]>([]);
+
+  const mine = useMemo(
+    () => ({
+      aportes: aportes.find((r) => r.es_yo)?.posicion ?? null,
+      prestamos: prestamos.find((r) => r.es_yo)?.posicion ?? null,
+    }),
+    [aportes, prestamos],
+  );
+
+  useEffect(() => {
+    const found: Change[] = [];
+    const check = (key: "aportes" | "prestamos", label: string) => {
+      const pos = mine[key];
+      if (pos == null) return;
+      const storageKey = `bv-rank-${key}-${userId}`;
+      const prevRaw = localStorage.getItem(storageKey);
+      const prev = prevRaw == null ? null : Number(prevRaw);
+      if (prev != null && !Number.isNaN(prev) && prev !== pos) found.push({ label, prev, now: pos });
+      localStorage.setItem(storageKey, String(pos));
+    };
+    check("aportes", "puntualidad en aportes");
+    check("prestamos", "pago de intereses");
+    if (found.length) setChanges(found);
+  }, [mine.aportes, mine.prestamos, userId]);
+
+  if (changes.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      {changes.map((c) => {
+        const mejoro = c.now < c.prev;
+        return (
+          <Alert key={c.label} className={mejoro ? "border-emerald-500/40 bg-emerald-500/10" : "border-amber-500/40 bg-amber-500/10"}>
+            {mejoro ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
+            <AlertTitle>{mejoro ? "¡Subiste en el ranking!" : "Bajaste en el ranking"}</AlertTitle>
+            <AlertDescription>
+              En {c.label} pasaste del puesto {c.prev}º al {c.now}º.
+            </AlertDescription>
+          </Alert>
+        );
+      })}
+      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setChanges([])}>
+        Entendido
+      </Button>
+    </div>
   );
 }

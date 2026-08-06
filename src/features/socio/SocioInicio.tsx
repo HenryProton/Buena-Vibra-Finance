@@ -8,6 +8,7 @@ import { Wallet, HandCoins, AlertCircle, BookOpen } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useCajaSettings } from "@/lib/queries";
+import { RankingAlerts, RankingAportes, RankingPrestamos } from "@/components/Rankings";
 
 export function SocioInicio() {
   const { user, profile } = useAuth();
@@ -53,6 +54,7 @@ export function SocioInicio() {
 
   return (
     <div className="space-y-4">
+      <RankingAlerts userId={uid} />
       <div className="grid grid-cols-2 gap-3">
         <Card className="p-4 space-y-1">
           <div className="flex items-center gap-2 text-muted-foreground text-xs">
@@ -81,6 +83,9 @@ export function SocioInicio() {
           </AlertDescription>
         </Alert>
       )}
+
+      <RankingAportes admin={false} />
+      <RankingPrestamos admin={false} />
 
       {settings?.normas && (
         <Card className="p-2">

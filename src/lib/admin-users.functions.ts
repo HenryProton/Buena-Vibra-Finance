@@ -46,6 +46,7 @@ export const adminCreateSocio = createServerFn({ method: "POST" })
     const uid = created.user!.id;
     const { error: upErr } = await supabaseAdmin.from("profiles").update({
       status: "activo",
+      password_set: false,
       num_acciones: Math.max(1, Number(data.num_acciones) || 1),
       full_name: data.full_name,
     }).eq("id", uid);
