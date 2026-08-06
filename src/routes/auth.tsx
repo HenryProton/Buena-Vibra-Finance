@@ -53,19 +53,60 @@ function AuthPage() {
     }
   }, [navigate]);
 
+  async function applySession(access_token: string, refresh_token: string) {
+    const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+    if (error) throw new Error(error.message);
+  }
+
   async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
     const fd = new FormData(e.currentTarget);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: String(fd.get("email")),
-      password: String(fd.get("password")),
-    });
-    setLoading(false);
-    if (error) return toast.error(error.message);
-    toast.success("¡Bienvenido!");
+    const id = String(fd.get("identifier") || identifier).trim();
+    const password = String(fd.get("password") || "");
+    try {
+      if (!password) {
+        const info = await lookupAcc({ data: { identifier: id } });
+        if (!info.passwordSet) {
+          await doFirstTime(id);
+          return;
+        }
+        setNeedsPassword(true);
+        toast.error("Escribe tu contraseña o PIN");
+        return;
+      }
+      const res = await login({ data: { identifier: id, password } });
+      await applySession(res.access_token, res.refresh_token);
+      toast.success("¡Bienvenido!");
+      navigate({ to: "/app" });
+    } catch (err: any) {
+      toast.error(err?.message ?? "No se pudo ingresar");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function doFirstTime(id: string) {
+    const res = await firstLogin({ data: { identifier: id } });
+    const { error } = await supabase.auth.verifyOtp({ token_hash: res.token_hash, type: "magiclink" });
+    if (error) throw new Error(error.message);
+    toast.success(`¡Hola ${res.fullName || ""}! Completa tu correo y teléfono en tu perfil.`);
     navigate({ to: "/app" });
   }
+
+  async function handleFirstTime() {
+    if (!identifier.trim()) return toast.error("Escribe tu nombre para continuar");
+    setLoading(true);
+    try {
+      await doFirstTime(identifier.trim());
+    } catch (err: any) {
+      toast.error(err?.message ?? "No se pudo ingresar");
+      setNeedsPassword(true);
+    } finally {
+      setLoading(false);
+    }
+  }
+
 
   async function handleSignup(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
