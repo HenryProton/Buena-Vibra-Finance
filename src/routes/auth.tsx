@@ -12,6 +12,8 @@ import logo from "@/assets/logo.jpg";
 import { useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { redeemInvitation, lookupInvitation } from "@/lib/invitations.functions";
+import { lookupAccount, loginWithIdentifier, firstTimeLogin } from "@/lib/login.functions";
+
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
