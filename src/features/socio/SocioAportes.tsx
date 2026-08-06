@@ -377,16 +377,22 @@ function StatusBadge({ status }: { status: string }) {
   return <Badge variant="outline"><AlertCircle className="h-3 w-3 mr-1" />Pendiente</Badge>;
 }
 
-function ReportarForm({ defaultAmount, channels, onSubmit, loading }: { defaultAmount: number; channels: any[]; onSubmit: (v: { year: number; month: number; amount: number; note: string; channel_id: string | null }) => void; loading: boolean }) {
+function ReportarForm({ defaultAmount, channels, onSubmit, loading, pendienteDelMes }: { defaultAmount: number; channels: any[]; onSubmit: (v: { year: number; month: number; amount: number; note: string; channel_id: string | null; payment_date: string }) => void; loading: boolean; pendienteDelMes: (y: number, m: number) => number }) {
   const now = new Date();
   const [year, setYear] = useState(String(now.getFullYear()));
   const [month, setMonth] = useState(String(now.getMonth() + 1));
   const [amount, setAmount] = useState(String(defaultAmount));
   const [note, setNote] = useState("");
   const [channelId, setChannelId] = useState<string>(channels[0]?.id ?? "");
+  const [fecha, setFecha] = useState(todayLocalISODate());
+
+  const falta = pendienteDelMes(Number(year), Number(month));
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ year: Number(year), month: Number(month), amount: Number(amount), note, channel_id: channelId || null }); }} className="space-y-3">
+    <form onSubmit={(e) => { e.preventDefault(); onSubmit({ year: Number(year), month: Number(month), amount: Number(amount), note, channel_id: channelId || null, payment_date: fecha }); }} className="space-y-3">
+      <p className="text-xs text-muted-foreground">
+        Puedes pagar tu mensualidad en varias partes y por diferentes pasarelas. Cada abono queda registrado por separado.
+      </p>
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
           <Label>Mes</Label>
@@ -400,22 +406,37 @@ function ReportarForm({ defaultAmount, channels, onSubmit, loading }: { defaultA
           <Input type="number" value={year} onChange={(e) => setYear(e.target.value)} />
         </div>
       </div>
-      <div className="space-y-1">
-        <Label>Canal</Label>
-        <Select value={channelId} onValueChange={setChannelId}>
-          <SelectTrigger><SelectValue placeholder="Elegir canal" /></SelectTrigger>
-          <SelectContent>{channels.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}</SelectContent>
-        </Select>
+      <div className="rounded-md border border-border bg-muted/30 p-2 text-xs">
+        Falta por abonar de este mes: <span className="font-bold">{formatUSD(Math.max(0, falta))}</span>
+        {falta > 0 && (
+          <Button type="button" variant="ghost" size="sm" className="h-6 ml-2 text-[11px]" onClick={() => setAmount(String(falta.toFixed(2)))}>
+            Usar este monto
+          </Button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1">
+          <Label>Pasarela</Label>
+          <Select value={channelId} onValueChange={setChannelId}>
+            <SelectTrigger><SelectValue placeholder="Elegir canal" /></SelectTrigger>
+            <SelectContent>{channels.map((c) => <SelectItem key={c.id} value={c.id}>{c.nombre}</SelectItem>)}</SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1">
+          <Label>Fecha del abono</Label>
+          <Input type="date" value={fecha} onChange={(e) => setFecha(e.target.value)} />
+        </div>
       </div>
       <div className="space-y-1">
-        <Label>Monto (USD)</Label>
+        <Label>Monto del abono (USD)</Label>
         <Input type="number" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required />
       </div>
       <div className="space-y-1">
         <Label>Nota (referencia)</Label>
         <Textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Ej: Transferencia #1234" />
       </div>
-      <Button type="submit" className="w-full" disabled={loading}>{loading ? "Enviando..." : "Reportar"}</Button>
+      <Button type="submit" className="w-full" disabled={loading}>{loading ? "Enviando..." : "Registrar abono"}</Button>
     </form>
   );
 }
+
