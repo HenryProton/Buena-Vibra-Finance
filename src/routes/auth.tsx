@@ -133,15 +133,37 @@ function AuthPage() {
             <TabsContent value="login" className="mt-4">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="email">Correo</Label>
-                  <Input id="email" name="email" type="email" required autoComplete="email" />
+                  <Label htmlFor="identifier">Tu nombre, teléfono o correo</Label>
+                  <Input
+                    id="identifier"
+                    name="identifier"
+                    required
+                    autoComplete="username"
+                    placeholder="Ej: Alvaro Reyes"
+                    value={identifier}
+                    onChange={(e) => { setIdentifier(e.target.value); setNeedsPassword(null); }}
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Puedes escribir tu nombre completo tal como aparece en la caja, tu número de teléfono o tu correo.
+                  </p>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="password">Contraseña</Label>
-                  <PasswordInput id="password" name="password"  required autoComplete="current-password" />
-                </div>
+                {needsPassword !== false && (
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Contraseña o PIN</Label>
+                    <PasswordInput id="password" name="password" autoComplete="current-password" />
+                  </div>
+                )}
                 <Button type="submit" className="w-full" disabled={loading}>
                   {loading ? "Ingresando..." : "Ingresar"}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  disabled={loading}
+                  onClick={handleFirstTime}
+                >
+                  Es mi primera vez (sin contraseña)
                 </Button>
                 <p className="text-center">
                   <Link to="/recuperar" className="text-sm text-primary underline">
@@ -150,6 +172,7 @@ function AuthPage() {
                 </p>
               </form>
             </TabsContent>
+
 
             <TabsContent value="signup" className="mt-4">
               <form onSubmit={handleSignup} className="space-y-4">
