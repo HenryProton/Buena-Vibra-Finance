@@ -16,7 +16,7 @@ import { ensureContributionId, addContributionPayment } from "@/lib/contribution
 import { useState } from "react";
 import { toast } from "sonner";
 import { Check, Clock, AlertCircle, BarChart3, PauseCircle, Sparkles } from "lucide-react";
-import { useCajaSettings, useChannels, useCajaPauses } from "@/lib/queries";
+import { useCajaSettings, useChannels, useCajaPauses, useContributionPayments } from "@/lib/queries";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 
 export function SocioAportes() {
@@ -108,10 +108,10 @@ export function SocioAportes() {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Mis aportes</h2>
         <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild><Button size="sm">Reportar pago</Button></DialogTrigger>
+          <DialogTrigger asChild><Button size="sm">Registrar abono</Button></DialogTrigger>
           <DialogContent>
-            <DialogHeader><DialogTitle>Reportar aporte mensual</DialogTitle></DialogHeader>
-            <ReportarForm defaultAmount={aporteMes} channels={channels} onSubmit={(v) => reportar.mutate(v)} loading={reportar.isPending} />
+            <DialogHeader><DialogTitle>Abonar a mi mensualidad</DialogTitle></DialogHeader>
+            <ReportarForm defaultAmount={aporteMes} channels={channels} onSubmit={(v) => reportar.mutate(v)} loading={reportar.isPending} pendienteDelMes={pendienteDelMes} />
           </DialogContent>
         </Dialog>
       </div>
