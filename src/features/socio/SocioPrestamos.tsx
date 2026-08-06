@@ -12,6 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatUSD, formatDateVE } from "@/lib/format";
 import { projectDebt, rateLabel, daysSinceLastPayment, type RateType } from "@/lib/loan-math";
+import { LoanInterestDetail } from "@/components/LoanInterestDetail";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ChevronDown, Calculator } from "lucide-react";
@@ -182,6 +183,8 @@ function LoanCard({ loan, payments, channels, userId, onChanged }: { loan: any; 
             {loan.disbursement_channel_id && <p>Canal de desembolso: {chName(loan.disbursement_channel_id)}</p>}
             {loan.note && <p>Nota: {loan.note}</p>}
           </div>
+
+          <LoanInterestDetail loan={loan} payments={confirmed} />
 
           <div>
             <p className="text-xs font-semibold mb-2">Abonos ({payments.length})</p>
