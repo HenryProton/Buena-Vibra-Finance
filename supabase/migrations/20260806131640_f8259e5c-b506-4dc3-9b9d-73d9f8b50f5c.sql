@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.recalc_contribution_amount() FROM PUBLIC, anon, authenticated;
