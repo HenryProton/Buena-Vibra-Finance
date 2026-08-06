@@ -59,3 +59,16 @@ export function useChannelBalance(channelId: string | null | undefined, enabled 
     },
   });
 }
+
+/** Abonos parciales de mensualidades (todos, o los de un socio). */
+export function useContributionPayments(userId?: string | null) {
+  return useQuery({
+    queryKey: ["contribution-payments", userId ?? "all"],
+    queryFn: async () => {
+      let q = supabase.from("contribution_payments").select("*").order("payment_date", { ascending: false });
+      if (userId) q = q.eq("user_id", userId);
+      const { data } = await q;
+      return data ?? [];
+    },
+  });
+}
