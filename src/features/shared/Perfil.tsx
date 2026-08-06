@@ -96,17 +96,21 @@ export function Perfil() {
 
   return (
     <div className="space-y-4">
-      {isPlaceholderEmail && (
+      {needsOnboarding && (
         <Card className="p-4 space-y-3 border-primary bg-primary/5">
           <div>
-            <h3 className="font-semibold">Configura tu correo y contraseña</h3>
-            <p className="text-xs text-muted-foreground">Tu cuenta fue creada por el administrador. Añade tu correo real y cambia la contraseña.</p>
+            <h3 className="font-semibold">Completa tus datos para usar la app</h3>
+            <p className="text-xs text-muted-foreground">
+              Entraste solo con tu nombre. Añade tu correo y tu teléfono; si quieres, define también una contraseña o PIN.
+            </p>
           </div>
           <div className="space-y-1"><Label>Tu correo real</Label><Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="tucorreo@ejemplo.com" /></div>
-          <div className="space-y-1"><Label>Nueva contraseña (opcional, mín 6)</Label><PasswordInput  value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
-          <Button onClick={updateCreds} disabled={savingCreds} className="w-full">{savingCreds ? "Guardando..." : "Actualizar"}</Button>
+          <div className="space-y-1"><Label>Tu teléfono</Label><Input type="tel" value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="0412 000 0000" /></div>
+          <div className="space-y-1"><Label>Contraseña o PIN (opcional, mín 6)</Label><PasswordInput value={newPassword} onChange={(e) => setNewPassword(e.target.value)} /></div>
+          <Button onClick={updateCreds} disabled={savingCreds} className="w-full">{savingCreds ? "Guardando..." : "Guardar mis datos"}</Button>
         </Card>
       )}
+
 
       <Card className="p-4 space-y-3">
         <h3 className="font-semibold">Mis datos</h3>
