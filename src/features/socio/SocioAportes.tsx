@@ -337,25 +337,50 @@ export function SocioAportes() {
         {aportes.length === 0 && (
           <Card className="p-6 text-center text-sm text-muted-foreground">Aún no hay aportes registrados.</Card>
         )}
-        {aportes.map((a) => (
-          <Card key={a.id} className="p-3 flex items-center justify-between">
-            <div>
-              <p className="font-medium text-sm flex items-center gap-1">
-                {MONTHS_ES[a.month - 1]} {a.year}
-                {isPausedMonth(a.year, a.month) && (
-                  <Badge variant="outline" className="text-[10px] border-blue-500/40 bg-blue-500/10 text-blue-600">
-                    <Sparkles className="h-3 w-3 mr-1" />Aporte especial
-                  </Badge>
-                )}
-              </p>
-              <p className="text-xs text-muted-foreground">{a.num_acciones} acción(es)</p>
-            </div>
-            <div className="text-right">
-              <p className="font-bold text-sm">{formatUSD(Number(a.amount))}</p>
-              <StatusBadge status={a.status} />
-            </div>
-          </Card>
-        ))}
+        {aportes.map((a) => {
+          const misAbonos = abonosDe(a.id);
+          const esperado = (a.num_acciones || 1) * Number(settings?.aporte_mensual ?? 10);
+          const falta = Math.max(0, esperado - Number(a.amount));
+          return (
+            <Card key={a.id} className="p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium text-sm flex items-center gap-1">
+                    {MONTHS_ES[a.month - 1]} {a.year}
+                    {isPausedMonth(a.year, a.month) && (
+                      <Badge variant="outline" className="text-[10px] border-blue-500/40 bg-blue-500/10 text-blue-600">
+                        <Sparkles className="h-3 w-3 mr-1" />Aporte especial
+                      </Badge>
+                    )}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{a.num_acciones} acción(es) · {misAbonos.length} abono(s)</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-sm">{formatUSD(Number(a.amount))}</p>
+                  <StatusBadge status={a.status} />
+                </div>
+              </div>
+              {misAbonos.length > 0 && (
+                <div className="rounded-md bg-muted/30 p-2 space-y-1">
+                  {misAbonos.map((ab) => (
+                    <div key={ab.id} className="flex justify-between text-[11px]">
+                      <span className="text-muted-foreground">
+                        {formatDateVE(ab.payment_date)} · {channels.find((c) => c.id === ab.channel_id)?.nombre ?? "Sin pasarela"}
+                      </span>
+                      <span className="font-medium">{formatUSD(Number(ab.amount))}</span>
+                    </div>
+                  ))}
+                  {falta > 0 && a.status !== "confirmado" && (
+                    <p className="text-[11px] text-destructive pt-1 border-t border-border">
+                      Falta por abonar: {formatUSD(falta)}
+                    </p>
+                  )}
+                </div>
+              )}
+            </Card>
+          );
+        })}
+
       </div>
     </div>
   );
