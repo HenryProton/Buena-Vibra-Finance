@@ -23,7 +23,9 @@ export function Perfil() {
   const [saving, setSaving] = useState(false);
 
   const isPlaceholderEmail = !!user?.email?.endsWith("@buenavibra.local");
+  const needsOnboarding = isPlaceholderEmail || (profile as any)?.password_set === false || !profile?.phone;
   const [newEmail, setNewEmail] = useState("");
+  const [newPhone, setNewPhone] = useState(profile?.phone ?? "");
   const [newPassword, setNewPassword] = useState("");
   const [savingCreds, setSavingCreds] = useState(false);
 
@@ -41,33 +43,50 @@ export function Perfil() {
     refresh();
   }
 
+  async function markPasswordSet() {
+    if (!profile) return;
+    await supabase.from("profiles").update({ password_set: true } as never).eq("id", profile.id);
+  }
+
   async function changePassword() {
     if (pwd.length < 6) return toast.error("La contraseña o PIN debe tener al menos 6 caracteres");
     if (pwd !== pwd2) return toast.error("Las contraseñas no coinciden");
     setSavingPwd(true);
     const { error } = await supabase.auth.updateUser({ password: pwd });
+    if (!error) await markPasswordSet();
     setSavingPwd(false);
     if (error) return toast.error(error.message);
     toast.success("Contraseña actualizada");
     setPwd("");
     setPwd2("");
+    refresh();
   }
 
   async function updateCreds() {
+    if (!newEmail.trim() && isPlaceholderEmail) return toast.error("Necesitamos tu correo real");
+    if (!newPhone.trim()) return toast.error("Necesitamos tu número de teléfono");
     const patch: { email?: string; password?: string } = {};
     if (newEmail.trim()) patch.email = newEmail.trim();
     if (newPassword) {
       if (newPassword.length < 6) return toast.error("La contraseña debe tener al menos 6 caracteres");
       patch.password = newPassword;
     }
-    if (!patch.email && !patch.password) return toast.error("Nada que actualizar");
     setSavingCreds(true);
-    const { error } = await supabase.auth.updateUser(patch);
+    if (patch.email || patch.password) {
+      const { error } = await supabase.auth.updateUser(patch);
+      if (error) { setSavingCreds(false); return toast.error(error.message); }
+    }
+    const profilePatch: Record<string, unknown> = { phone: newPhone.trim() };
+    if (patch.password) profilePatch.password_set = true;
+    const { error: pErr } = await supabase.from("profiles").update(profilePatch as never).eq("id", profile!.id);
     setSavingCreds(false);
-    if (error) return toast.error(error.message);
-    toast.success(patch.email ? "Revisa tu correo para confirmar el cambio de email" : "Contraseña actualizada");
+    if (pErr) return toast.error(pErr.message);
+    toast.success(patch.email ? "Revisa tu correo para confirmar el cambio de email" : "Datos actualizados");
     setNewEmail(""); setNewPassword("");
+    setPhone(newPhone.trim());
+    refresh();
   }
+
 
 
   async function logout() {
