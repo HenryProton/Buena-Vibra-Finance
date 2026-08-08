@@ -389,6 +389,7 @@ export type Database = {
         Row: {
           cedula: string | null
           created_at: string
+          email_verified: boolean
           fecha_fin: string | null
           fecha_inicio: string | null
           full_name: string
@@ -397,13 +398,16 @@ export type Database = {
           num_acciones: number
           password_set: boolean
           phone: string | null
+          phone_verified: boolean
           status: Database["public"]["Enums"]["profile_status"]
           theme_preference: string
           updated_at: string
+          username: string | null
         }
         Insert: {
           cedula?: string | null
           created_at?: string
+          email_verified?: boolean
           fecha_fin?: string | null
           fecha_inicio?: string | null
           full_name?: string
@@ -412,13 +416,16 @@ export type Database = {
           num_acciones?: number
           password_set?: boolean
           phone?: string | null
+          phone_verified?: boolean
           status?: Database["public"]["Enums"]["profile_status"]
           theme_preference?: string
           updated_at?: string
+          username?: string | null
         }
         Update: {
           cedula?: string | null
           created_at?: string
+          email_verified?: boolean
           fecha_fin?: string | null
           fecha_inicio?: string | null
           full_name?: string
@@ -427,9 +434,44 @@ export type Database = {
           num_acciones?: number
           password_set?: boolean
           phone?: string | null
+          phone_verified?: boolean
           status?: Database["public"]["Enums"]["profile_status"]
           theme_preference?: string
           updated_at?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
+      ranking_notifications: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          message: string
+          new_pos: number
+          prev_pos: number | null
+          read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          message: string
+          new_pos: number
+          prev_pos?: number | null
+          read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          message?: string
+          new_pos?: number
+          prev_pos?: number | null
+          read_at?: string | null
+          user_id?: string
         }
         Relationships: []
       }
