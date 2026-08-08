@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth-context";
 import { adminCreateInvitation, adminCancelInvitation } from "@/lib/invitations.functions";
 import { Mail, Copy, X } from "lucide-react";
 import { adminCreateSocio, adminGetSocioLogin } from "@/lib/admin-users.functions";
+import { adminSetPhoneVerified } from "@/lib/verification.functions";
 import { UserPlus, Share2 } from "lucide-react";
 import { RecoveryRequestsPanel } from "./RecoveryRequestsPanel";
 
@@ -53,6 +54,13 @@ export function AdminSocios() {
       }
     },
     onSuccess: () => { toast.success("Rol actualizado"); qc.invalidateQueries({ queryKey: ["admin-profiles-roles"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const setPhoneVerified = useServerFn(adminSetPhoneVerified);
+  const verifyPhone = useMutation({
+    mutationFn: async (v: { user_id: string; verified: boolean }) => { await setPhoneVerified({ data: v }); },
+    onSuccess: () => { toast.success("Verificación actualizada"); qc.invalidateQueries({ queryKey: ["admin-profiles-roles"] }); },
     onError: (e: Error) => toast.error(e.message),
   });
 
