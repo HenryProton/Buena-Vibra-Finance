@@ -45,8 +45,15 @@ export function Perfil() {
   const { data: verif } = useQuery({
     queryKey: ["my-verification", profile?.id],
     enabled: !!profile?.id,
+    refetchInterval: 20000,
     queryFn: async () => await syncVerif({}),
   });
+
+  useEffect(() => {
+    if (!verif || !profile) return;
+    if (verif.email_verified !== (profile as any).email_verified) refresh();
+  }, [verif?.email_verified]);
+
 
   async function saveUsername() {
     setSavingUser(true);
