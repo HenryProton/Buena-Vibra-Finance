@@ -9,7 +9,10 @@ import { useTheme } from "@/lib/theme";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useState } from "react";
-import { Sun, Moon, MonitorSmartphone, LogOut, Sparkles, Accessibility, KeyRound } from "lucide-react";
+import { Sun, Moon, MonitorSmartphone, LogOut, Sparkles, Accessibility, KeyRound, BadgeCheck } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { syncMyVerification, setMyUsername } from "@/lib/verification.functions";
 import { SocioAportes } from "@/features/socio/SocioAportes";
 import { SocioPrestamos } from "@/features/socio/SocioPrestamos";
 import { AdminAjustes } from "@/features/admin/AdminAjustes";
@@ -31,6 +34,44 @@ export function Perfil() {
 
   const [pwd, setPwd] = useState("");
   const [pwd2, setPwd2] = useState("");
+
+  const [username, setUsername] = useState(((profile as any)?.username ?? "") as string);
+  const [savingUser, setSavingUser] = useState(false);
+  const [resending, setResending] = useState(false);
+  const syncVerif = useServerFn(syncMyVerification);
+  const saveUser = useServerFn(setMyUsername);
+  const qc = useQueryClient();
+
+  const { data: verif } = useQuery({
+    queryKey: ["my-verification", profile?.id],
+    enabled: !!profile?.id,
+    queryFn: async () => await syncVerif({}),
+  });
+
+  async function saveUsername() {
+    setSavingUser(true);
+    try {
+      const res = await saveUser({ data: { username } });
+      setUsername(res.username);
+      toast.success("Usuario guardado");
+      refresh();
+    } catch (e: any) {
+      toast.error(e?.message ?? "No se pudo guardar el usuario");
+    } finally { setSavingUser(false); }
+  }
+
+  async function resendEmail() {
+    if (!user?.email || user.email.endsWith("@buenavibra.local")) {
+      return toast.error("Primero añade tu correo real arriba");
+    }
+    setResending(true);
+    const { error } = await supabase.auth.resend({ type: "signup", email: user.email });
+    setResending(false);
+    if (error) return toast.error(error.message);
+    toast.success("Te enviamos el correo de verificación");
+    qc.invalidateQueries({ queryKey: ["my-verification", profile?.id] });
+  }
+
   const [savingPwd, setSavingPwd] = useState(false);
 
   async function save() {
