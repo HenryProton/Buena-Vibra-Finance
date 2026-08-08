@@ -25,7 +25,7 @@ async function resolveAccount(identifier: string) {
 
   const { data: profiles, error } = await supabaseAdmin
     .from("profiles")
-    .select("id, full_name, phone, cedula, password_set, status");
+    .select("id, full_name, username, phone, cedula, password_set, status");
   if (error) throw new Error(error.message);
 
   let match: (typeof profiles)[number] | undefined;
@@ -44,10 +44,12 @@ async function resolveAccount(identifier: string) {
     const d = digits(id);
     match =
       profiles?.find((p) => norm(p.full_name ?? "") === n) ??
+      profiles?.find((p) => ((p as any).username ?? "").toLowerCase() === id.trim().toLowerCase()) ??
       (d.length >= 7 ? profiles?.find((p) => digits(p.phone ?? "") === d) : undefined) ??
       (d.length >= 5 ? profiles?.find((p) => digits(p.cedula ?? "") === d) : undefined) ??
       profiles?.filter((p) => norm(p.full_name ?? "").startsWith(n) && n.length >= 3)[0];
   }
+
 
   if (!match) throw new Error("No encontramos una cuenta con esos datos. Verifica tu nombre o pide ayuda al administrador.");
 

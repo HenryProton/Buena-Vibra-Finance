@@ -64,6 +64,35 @@ function AppShell() {
   }
 
   const isAdminView = isAdmin;
+  const needsVerification =
+    !isAdmin && (!(profile as any).email_verified || !(profile as any).phone_verified);
+
+  if (needsVerification) {
+    return (
+      <div className="min-h-screen bg-background pb-4">
+        <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border">
+          <div className="max-w-md mx-auto px-4 h-14 flex items-center gap-3">
+            <img src={logo} alt="logo" className="h-9 w-9 rounded-lg object-cover" />
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold truncate">Buena Vibra Finance</p>
+              <p className="text-xs text-muted-foreground truncate">Socio · {profile.full_name}</p>
+            </div>
+          </div>
+        </header>
+        <main className="max-w-md mx-auto px-4 py-4 space-y-4">
+          <Card className="p-4 space-y-2 border-primary bg-primary/5">
+            <h3 className="font-semibold">Verifica tu cuenta para continuar</h3>
+            <p className="text-sm text-muted-foreground">
+              Necesitamos confirmar tu correo y tu teléfono antes de darte acceso completo. Completa tus datos aquí abajo;
+              revisa el correo de verificación y pide al administrador que confirme tu teléfono.
+            </p>
+          </Card>
+          <Perfil />
+        </main>
+      </div>
+    );
+  }
+
 
   return (
     <div className="min-h-screen bg-background pb-4">

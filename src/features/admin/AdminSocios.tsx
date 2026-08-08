@@ -15,6 +15,7 @@ import { useAuth } from "@/lib/auth-context";
 import { adminCreateInvitation, adminCancelInvitation } from "@/lib/invitations.functions";
 import { Mail, Copy, X } from "lucide-react";
 import { adminCreateSocio, adminGetSocioLogin } from "@/lib/admin-users.functions";
+import { adminSetPhoneVerified } from "@/lib/verification.functions";
 import { UserPlus, Share2 } from "lucide-react";
 import { RecoveryRequestsPanel } from "./RecoveryRequestsPanel";
 
@@ -56,6 +57,13 @@ export function AdminSocios() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const setPhoneVerified = useServerFn(adminSetPhoneVerified);
+  const verifyPhone = useMutation({
+    mutationFn: async (v: { user_id: string; verified: boolean }) => { await setPhoneVerified({ data: v }); },
+    onSuccess: () => { toast.success("Verificación actualizada"); qc.invalidateQueries({ queryKey: ["admin-profiles-roles"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const isAdminOf = (uid: string) => data?.roles.some((r) => r.user_id === uid && r.role === "admin") ?? false;
 
   return (
@@ -79,10 +87,20 @@ export function AdminSocios() {
                     {admin ? "Admin" : "Socio"}
                   </Badge>
                 </p>
+                {(p as any).username && <p className="text-xs text-muted-foreground">Usuario: {(p as any).username}</p>}
                 <p className="text-xs text-muted-foreground">{p.num_acciones} acción(es) · {formatUSD(Number(p.num_acciones) * 10)}/mes</p>
+                <div className="flex flex-wrap gap-1 pt-1">
+                  <Badge className={(p as any).email_verified ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground"}>
+                    {(p as any).email_verified ? "Correo verificado" : "Correo sin verificar"}
+                  </Badge>
+                  <Badge className={(p as any).phone_verified ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground"}>
+                    {(p as any).phone_verified ? "Teléfono verificado" : "Teléfono sin verificar"}
+                  </Badge>
+                </div>
               </div>
               <StatusBadge status={p.status} />
             </div>
+
 
             <div className="flex items-center justify-between pt-2 border-t border-border">
               <div className="flex items-center gap-2">
@@ -105,6 +123,13 @@ export function AdminSocios() {
               <EditAcciones profile={p} onSave={(n) => upd.mutate({ id: p.id, patch: { num_acciones: n } })} />
               <EditPeriodo profile={p} onSave={(v: { fecha_inicio: string | null; fecha_fin: string | null }) => upd.mutate({ id: p.id, patch: v })} />
               <CompartirWhatsapp profile={p} />
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => verifyPhone.mutate({ user_id: p.id, verified: !(p as any).phone_verified })}
+              >
+                {(p as any).phone_verified ? "Quitar verificación tel." : "Verificar teléfono"}
+              </Button>
             </div>
           </Card>
         );
@@ -246,11 +271,12 @@ function CompartirWhatsapp({ profile }: { profile: any }) {
   };
 
   const publishedUrl = "https://buena-vibra-cajita.lovable.app";
-  const usuario = info?.is_placeholder ? profile.full_name : (info?.login_email ?? "");
+  const visibleUser = (profile as any).username as string | null;
+  const identidad = `👤 Nombre: ${profile.full_name}` + (visibleUser ? `\n🏷️ Usuario: ${visibleUser}` : "");
   const message = info
     ? info.is_placeholder
-      ? `Hola ${profile.full_name}, te comparto el acceso a la caja Buena Vibra:\n\n🔗 App: ${publishedUrl}\n👤 Usuario: ${usuario}\n🔑 Contraseña: ${info.default_password} (o toca "Es mi primera vez" y entras sin contraseña)\n\nAl entrar, en Perfil podrás poner tu correo, tu teléfono y cambiar la contraseña.`
-      : `Hola ${profile.full_name}, te comparto el acceso a la caja Buena Vibra:\n\n🔗 App: ${publishedUrl}\n👤 Usuario: ${usuario}\n\nIngresa con tu contraseña. Si la olvidaste, usa "¿Olvidaste tu usuario o contraseña?".`
+      ? `Hola ${profile.full_name}, te comparto el acceso a la caja Buena Vibra:\n\n🔗 App: ${publishedUrl}\n${identidad}\n🔑 Contraseña: ${info.default_password} (o toca "Es mi primera vez" y entras sin contraseña)\n\nPuedes ingresar escribiendo tu nombre completo${visibleUser ? " o tu usuario" : ""}. Al entrar, en Perfil podrás poner tu correo y tu teléfono para verificar tu cuenta.`
+      : `Hola ${profile.full_name}, te comparto el acceso a la caja Buena Vibra:\n\n🔗 App: ${publishedUrl}\n${identidad}\n\nIngresa con tu contraseña. Si la olvidaste, usa "¿Olvidaste tu usuario o contraseña?".`
     : "";
 
   const openWa = () => {
