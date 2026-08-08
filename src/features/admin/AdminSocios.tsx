@@ -115,6 +115,13 @@ export function AdminSocios() {
               <EditAcciones profile={p} onSave={(n) => upd.mutate({ id: p.id, patch: { num_acciones: n } })} />
               <EditPeriodo profile={p} onSave={(v: { fecha_inicio: string | null; fecha_fin: string | null }) => upd.mutate({ id: p.id, patch: v })} />
               <CompartirWhatsapp profile={p} />
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => verifyPhone.mutate({ user_id: p.id, verified: !(p as any).phone_verified })}
+              >
+                {(p as any).phone_verified ? "Quitar verificación tel." : "Verificar teléfono"}
+              </Button>
             </div>
           </Card>
         );
