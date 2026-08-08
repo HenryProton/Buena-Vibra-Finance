@@ -203,7 +203,7 @@ function CrearSocioDialog({ onCreated }: { onCreated: () => void }) {
           <div className="space-y-3">
             <div className="rounded-md bg-emerald-500/10 border border-emerald-500/30 p-3 space-y-2 text-sm">
               <p className="font-semibold text-emerald-700 dark:text-emerald-400">Socio creado. Comparte estos datos:</p>
-              <div><p className="text-xs text-muted-foreground">Usuario para ingresar</p><p className="font-mono font-bold">{creds.login_email}</p></div>
+              <div><p className="text-xs text-muted-foreground">Usuario para ingresar</p><p className="font-bold">{fullName}</p><p className="text-[11px] text-muted-foreground">También puede entrar con su teléfono o correo cuando los registre.</p></div>
               <div><p className="text-xs text-muted-foreground">Contraseña</p><p className="font-mono font-bold">{creds.password}</p></div>
               <p className="text-[11px] text-muted-foreground">Al ingresar por primera vez, el socio podrá poner su correo real y cambiar la contraseña desde Perfil.</p>
             </div>
@@ -215,7 +215,7 @@ function CrearSocioDialog({ onCreated }: { onCreated: () => void }) {
             <div className="space-y-1">
               <Label>Usuario (opcional)</Label>
               <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Ej: maria (se genera del nombre si lo dejas vacío)" />
-              <p className="text-[11px] text-muted-foreground">Se creará el ingreso <strong>usuario@buenavibra.local</strong> con contraseña <strong>123456</strong>.</p>
+              <p className="text-[11px] text-muted-foreground">El socio ingresa con su <strong>nombre completo</strong> y la contraseña <strong>123456</strong> (o sin contraseña la primera vez).</p>
             </div>
             <div className="space-y-1"><Label>Acciones ($10 c/u)</Label><Input type="number" min={1} value={acciones} onChange={(e) => setAcciones(e.target.value)} /></div>
             <Button className="w-full" onClick={submit} disabled={loading || !fullName.trim()}>{loading ? "Creando..." : "Crear y activar"}</Button>
@@ -246,8 +246,11 @@ function CompartirWhatsapp({ profile }: { profile: any }) {
   };
 
   const publishedUrl = "https://buena-vibra-cajita.lovable.app";
+  const usuario = info?.is_placeholder ? profile.full_name : (info?.login_email ?? "");
   const message = info
-    ? `Hola ${profile.full_name}, te comparto el acceso a la caja Buena Vibra:\n\n🔗 App: ${publishedUrl}\n👤 Usuario: ${info.login_email}\n🔑 Contraseña: ${info.default_password}\n\nAl entrar por primera vez, en Perfil podrás poner tu correo real y cambiar la contraseña.`
+    ? info.is_placeholder
+      ? `Hola ${profile.full_name}, te comparto el acceso a la caja Buena Vibra:\n\n🔗 App: ${publishedUrl}\n👤 Usuario: ${usuario}\n🔑 Contraseña: ${info.default_password} (o toca "Es mi primera vez" y entras sin contraseña)\n\nAl entrar, en Perfil podrás poner tu correo, tu teléfono y cambiar la contraseña.`
+      : `Hola ${profile.full_name}, te comparto el acceso a la caja Buena Vibra:\n\n🔗 App: ${publishedUrl}\n👤 Usuario: ${usuario}\n\nIngresa con tu contraseña. Si la olvidaste, usa "¿Olvidaste tu usuario o contraseña?".`
     : "";
 
   const openWa = () => {
