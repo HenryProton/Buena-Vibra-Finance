@@ -79,10 +79,20 @@ export function AdminSocios() {
                     {admin ? "Admin" : "Socio"}
                   </Badge>
                 </p>
+                {(p as any).username && <p className="text-xs text-muted-foreground">Usuario: {(p as any).username}</p>}
                 <p className="text-xs text-muted-foreground">{p.num_acciones} acción(es) · {formatUSD(Number(p.num_acciones) * 10)}/mes</p>
+                <div className="flex flex-wrap gap-1 pt-1">
+                  <Badge className={(p as any).email_verified ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground"}>
+                    {(p as any).email_verified ? "Correo verificado" : "Correo sin verificar"}
+                  </Badge>
+                  <Badge className={(p as any).phone_verified ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground"}>
+                    {(p as any).phone_verified ? "Teléfono verificado" : "Teléfono sin verificar"}
+                  </Badge>
+                </div>
               </div>
               <StatusBadge status={p.status} />
             </div>
+
 
             <div className="flex items-center justify-between pt-2 border-t border-border">
               <div className="flex items-center gap-2">
