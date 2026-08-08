@@ -121,6 +121,44 @@ export function Perfil() {
       </Card>
 
       <Card className="p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <BadgeCheck className="h-4 w-4 text-primary" />
+          <h3 className="font-semibold">Verificación de tu cuenta</h3>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Para usar toda la app necesitas tu correo verificado y tu teléfono confirmado por un administrador.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <span className={`text-xs px-2 py-1 rounded-full ${verif?.email_verified ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>
+            Correo: {verif?.email_verified ? "verificado" : "pendiente"}
+          </span>
+          <span className={`text-xs px-2 py-1 rounded-full ${verif?.phone_verified ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400" : "bg-muted text-muted-foreground"}`}>
+            Teléfono: {verif?.phone_verified ? "verificado" : "pendiente"}
+          </span>
+        </div>
+        {!verif?.email_verified && (
+          <Button variant="outline" size="sm" onClick={resendEmail} disabled={resending}>
+            {resending ? "Enviando..." : "Reenviar correo de verificación"}
+          </Button>
+        )}
+        {!verif?.phone_verified && (
+          <p className="text-xs text-muted-foreground">
+            Escribe tu teléfono arriba y avisa al administrador para que lo confirme.
+          </p>
+        )}
+        <div className="space-y-1 pt-2 border-t border-border">
+          <Label>Usuario visible (opcional)</Label>
+          <Input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Ej: alvaro.reyes" />
+          <p className="text-[11px] text-muted-foreground">
+            Se usa para ingresar y para compartir tu acceso. No puede repetirse con el de otro socio.
+          </p>
+          <Button variant="outline" size="sm" onClick={saveUsername} disabled={savingUser || !username.trim()}>
+            {savingUser ? "Guardando..." : "Guardar usuario"}
+          </Button>
+        </div>
+      </Card>
+
+      <Card className="p-4 space-y-3">
         <h3 className="font-semibold">Apariencia</h3>
         <p className="text-xs text-muted-foreground">Escoge cómo se ve la app.</p>
         <div className="grid grid-cols-3 gap-2">
