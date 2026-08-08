@@ -271,11 +271,12 @@ function CompartirWhatsapp({ profile }: { profile: any }) {
   };
 
   const publishedUrl = "https://buena-vibra-cajita.lovable.app";
-  const usuario = info?.is_placeholder ? profile.full_name : (info?.login_email ?? "");
+  const visibleUser = (profile as any).username as string | null;
+  const identidad = `👤 Nombre: ${profile.full_name}` + (visibleUser ? `\n🏷️ Usuario: ${visibleUser}` : "");
   const message = info
     ? info.is_placeholder
-      ? `Hola ${profile.full_name}, te comparto el acceso a la caja Buena Vibra:\n\n🔗 App: ${publishedUrl}\n👤 Usuario: ${usuario}\n🔑 Contraseña: ${info.default_password} (o toca "Es mi primera vez" y entras sin contraseña)\n\nAl entrar, en Perfil podrás poner tu correo, tu teléfono y cambiar la contraseña.`
-      : `Hola ${profile.full_name}, te comparto el acceso a la caja Buena Vibra:\n\n🔗 App: ${publishedUrl}\n👤 Usuario: ${usuario}\n\nIngresa con tu contraseña. Si la olvidaste, usa "¿Olvidaste tu usuario o contraseña?".`
+      ? `Hola ${profile.full_name}, te comparto el acceso a la caja Buena Vibra:\n\n🔗 App: ${publishedUrl}\n${identidad}\n🔑 Contraseña: ${info.default_password} (o toca "Es mi primera vez" y entras sin contraseña)\n\nPuedes ingresar escribiendo tu nombre completo${visibleUser ? " o tu usuario" : ""}. Al entrar, en Perfil podrás poner tu correo y tu teléfono para verificar tu cuenta.`
+      : `Hola ${profile.full_name}, te comparto el acceso a la caja Buena Vibra:\n\n🔗 App: ${publishedUrl}\n${identidad}\n\nIngresa con tu contraseña. Si la olvidaste, usa "¿Olvidaste tu usuario o contraseña?".`
     : "";
 
   const openWa = () => {
