@@ -209,13 +209,44 @@ export function RankingPrestamos({ admin }: { admin: boolean }) {
   );
 }
 
-type Change = { label: string; prev: number; now: number };
+type Notif = {
+  id: string;
+  kind: string;
+  prev_pos: number | null;
+  new_pos: number;
+  message: string;
+  read_at: string | null;
+  created_at: string;
+};
 
-/** Avisa en el panel de inicio cuando cambia la posición del socio en algún ranking. */
+const KIND_LABEL: Record<string, string> = {
+  aportes: "puntualidad en aportes",
+  prestamos: "pago de intereses",
+};
+
+/**
+ * Detecta cambios de posición del socio, los guarda como aviso en su historial
+ * y muestra los avisos no leídos en el panel de inicio.
+ */
 export function RankingAlerts({ userId }: { userId: string }) {
+  const qc = useQueryClient();
   const { data: aportes = [] } = useRanking<RowAporte>("ranking_aportes");
   const { data: prestamos = [] } = useRanking<RowPrestamo>("ranking_prestamos");
-  const [changes, setChanges] = useState<Change[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+
+  const { data: notifs = [] } = useQuery({
+    queryKey: ["ranking-notifs", userId],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any)
+        .from("ranking_notifications")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return (data ?? []) as Notif[];
+    },
+  });
 
   const mine = useMemo(
     () => ({
@@ -226,40 +257,84 @@ export function RankingAlerts({ userId }: { userId: string }) {
   );
 
   useEffect(() => {
-    const found: Change[] = [];
-    const check = (key: "aportes" | "prestamos", label: string) => {
-      const pos = mine[key];
-      if (pos == null) return;
-      const storageKey = `bv-rank-${key}-${userId}`;
-      const prevRaw = localStorage.getItem(storageKey);
-      const prev = prevRaw == null ? null : Number(prevRaw);
-      if (prev != null && !Number.isNaN(prev) && prev !== pos) found.push({ label, prev, now: pos });
-      localStorage.setItem(storageKey, String(pos));
+    if (!notifs) return;
+    const run = async () => {
+      const inserts: Array<Record<string, unknown>> = [];
+      (["aportes", "prestamos"] as const).forEach((kind) => {
+        const pos = mine[kind];
+        if (pos == null) return;
+        const last = notifs.find((n) => n.kind === kind);
+        const storageKey = `bv-rank-${kind}-${userId}`;
+        const prev = last ? last.new_pos : (() => {
+          const raw = localStorage.getItem(storageKey);
+          return raw == null || Number.isNaN(Number(raw)) ? null : Number(raw);
+        })();
+        localStorage.setItem(storageKey, String(pos));
+        if (prev == null || prev === pos) return;
+        const mejoro = pos < prev;
+        inserts.push({
+          user_id: userId,
+          kind,
+          prev_pos: prev,
+          new_pos: pos,
+          message: `${mejoro ? "Subiste" : "Bajaste"} en ${KIND_LABEL[kind]}: del puesto ${prev}º al ${pos}º.`,
+        });
+      });
+      if (!inserts.length) return;
+      await (supabase as any).from("ranking_notifications").insert(inserts);
+      qc.invalidateQueries({ queryKey: ["ranking-notifs", userId] });
     };
-    check("aportes", "puntualidad en aportes");
-    check("prestamos", "pago de intereses");
-    if (found.length) setChanges(found);
-  }, [mine.aportes, mine.prestamos, userId]);
+    void run();
+  }, [mine.aportes, mine.prestamos, userId, notifs, qc]);
 
-  if (changes.length === 0) return null;
+  const unread = notifs.filter((n) => !n.read_at);
+
+  const markRead = async () => {
+    await (supabase as any)
+      .from("ranking_notifications")
+      .update({ read_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .is("read_at", null);
+    qc.invalidateQueries({ queryKey: ["ranking-notifs", userId] });
+  };
+
+  if (notifs.length === 0) return null;
 
   return (
     <div className="space-y-2">
-      {changes.map((c) => {
-        const mejoro = c.now < c.prev;
+      {unread.map((n) => {
+        const mejoro = n.prev_pos != null && n.new_pos < n.prev_pos;
         return (
-          <Alert key={c.label} className={mejoro ? "border-emerald-500/40 bg-emerald-500/10" : "border-amber-500/40 bg-amber-500/10"}>
+          <Alert key={n.id} className={mejoro ? "border-emerald-500/40 bg-emerald-500/10" : "border-amber-500/40 bg-amber-500/10"}>
             {mejoro ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
             <AlertTitle>{mejoro ? "¡Subiste en el ranking!" : "Bajaste en el ranking"}</AlertTitle>
-            <AlertDescription>
-              En {c.label} pasaste del puesto {c.prev}º al {c.now}º.
-            </AlertDescription>
+            <AlertDescription>{n.message}</AlertDescription>
           </Alert>
         );
       })}
-      <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setChanges([])}>
-        Entendido
-      </Button>
+      <div className="flex gap-2">
+        {unread.length > 0 && (
+          <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={markRead}>
+            Entendido
+          </Button>
+        )}
+        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowHistory((v) => !v)}>
+          {showHistory ? "Ocultar historial" : `Ver historial (${notifs.length})`}
+        </Button>
+      </div>
+      {showHistory && (
+        <Card className="p-3 space-y-2">
+          <p className="text-sm font-semibold">Historial de cambios de posición</p>
+          {notifs.map((n) => (
+            <div key={n.id} className="flex items-start justify-between gap-2 text-xs border-b border-border last:border-0 pb-1">
+              <span>{n.message}</span>
+              <span className="text-muted-foreground whitespace-nowrap">
+                {new Date(n.created_at).toLocaleDateString("es", { day: "2-digit", month: "short", year: "numeric" })}
+              </span>
+            </div>
+          ))}
+        </Card>
+      )}
     </div>
   );
 }
