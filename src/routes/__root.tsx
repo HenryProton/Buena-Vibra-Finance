@@ -1,84 +1,22 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  Outlet,
-  Link,
-  createRootRouteWithContext,
-  useRouter,
-  HeadContent,
-  Scripts,
-} from "@tanstack/react-router";
+import { Outlet, Link, createRootRouteWithContext, useRouter, HeadContent, Scripts } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/lib/theme";
 import { AuthProvider } from "@/lib/auth-context";
 import { ThemeSync } from "@/lib/theme-sync";
-
-import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 import { registerPwa } from "@/lib/pwa-register";
-
-
-
-
+import appCss from "../styles.css?url";
 
 function NotFoundComponent() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          The page you're looking for doesn't exist or has been moved.
-        </p>
-        <div className="mt-6">
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Go home
-          </Link>
-        </div>
-      </div>
-    </div>
-  );
+  return <div className="flex min-h-screen items-center justify-center bg-background px-4"><div className="max-w-md text-center"><h1 className="text-7xl font-bold text-foreground">404</h1><h2 className="mt-4 text-xl font-semibold text-foreground">Página no encontrada</h2><p className="mt-2 text-sm text-muted-foreground">La página que buscas no existe o fue movida.</p><div className="mt-6"><Link to="/" className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90">Volver al inicio</Link></div></div></div>;
 }
 
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
-
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          This page didn't load
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Something went wrong on our end. You can try refreshing or head back home.
-        </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <button
-            onClick={() => {
-              router.invalidate();
-              reset();
-            }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Try again
-          </button>
-          <a
-            href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            Go home
-          </a>
-        </div>
-      </div>
-    </div>
-  );
+  useEffect(() => {}, [error]);
+  return <div className="flex min-h-screen items-center justify-center bg-background px-4"><div className="max-w-md text-center"><h1 className="text-xl font-semibold tracking-tight text-foreground">No se pudo cargar la página</h1><p className="mt-2 text-sm text-muted-foreground">Ocurrió un error. Puedes intentarlo nuevamente.</p><div className="mt-6 flex flex-wrap justify-center gap-2"><button onClick={() => { router.invalidate(); reset(); }} className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">Intentar nuevamente</button><a href="/" className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground">Inicio</a></div></div></div>;
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -86,26 +24,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Buena Vibra Finanace (Caja de ahorros)" },
-      { name: "description", content: "Buena Vibra Finance helps manage savings and loans with distinct user roles." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Buena Vibra Finanace (Caja de ahorros)" },
-      { property: "og:description", content: "Buena Vibra Finance helps manage savings and loans with distinct user roles." },
+      { title: "Buena Vibra Finance" },
+      { name: "description", content: "Buena Vibra Finance — gestión segura de ahorros y préstamos." },
+      { name: "author", content: "Buena Vibra Finance" },
+      { property: "og:title", content: "Buena Vibra Finance" },
+      { property: "og:description", content: "Gestión segura de ahorros y préstamos." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
-      { name: "twitter:title", content: "Buena Vibra Finanace (Caja de ahorros)" },
-      { name: "twitter:description", content: "Buena Vibra Finance helps manage savings and loans with distinct user roles." },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/13DOKsTOGsSLf0zIXfyurZY7Tc83/social-images/social-1783134226804-1000508261.webp" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/13DOKsTOGsSLf0zIXfyurZY7Tc83/social-images/social-1783134226804-1000508261.webp" },
+      { name: "twitter:title", content: "Buena Vibra Finance" },
+      { name: "twitter:description", content: "Gestión segura de ahorros y préstamos." },
     ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      { rel: "icon", href: "/logo.jpg", type: "image/jpeg" },
-    ],
+    links: [{ rel: "stylesheet", href: appCss }, { rel: "icon", href: "/logo.jpg", type: "image/jpeg" }],
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -114,33 +43,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootShell({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <HeadContent />
-      </head>
-      <body>
-        {children}
-        <Scripts />
-      </body>
-    </html>
-  );
+  return <html lang="es"><head><HeadContent /></head><body>{children}<Scripts /></body></html>;
 }
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   useEffect(() => { registerPwa(); }, []);
-
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <AuthProvider>
-          <ThemeSync />
-          <Outlet />
-          <Toaster richColors position="top-center" />
-        </AuthProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
-  );
+  return <QueryClientProvider client={queryClient}><ThemeProvider><AuthProvider><ThemeSync /><Outlet /><Toaster richColors position="top-center" /></AuthProvider></ThemeProvider></QueryClientProvider>;
 }
