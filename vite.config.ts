@@ -3,7 +3,11 @@ import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { VitePWA } from "vite-plugin-pwa";
 
+const isGitHubPages = process.env.GITHUB_ACTIONS === "true";
+const base = isGitHubPages ? "/buena-vibra-cajita/" : "/";
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     tsconfigPaths(),
@@ -18,15 +22,15 @@ export default defineConfig({
         theme_color: "#0f172a",
         background_color: "#0f172a",
         display: "standalone",
-        start_url: "/",
-        scope: "/",
+        start_url: base,
+        scope: base,
         icons: [
-          { src: "/logo.jpg", sizes: "192x192", type: "image/jpeg", purpose: "any" },
-          { src: "/logo.jpg", sizes: "512x512", type: "image/jpeg", purpose: "any" },
+          { src: `${base}logo.jpg`, sizes: "192x192", type: "image/jpeg", purpose: "any" },
+          { src: `${base}logo.jpg`, sizes: "512x512", type: "image/jpeg", purpose: "any" },
         ],
       },
       workbox: {
-        navigateFallback: "/",
+        navigateFallback: `${base}index.html`,
         navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /^\/_serverFn\//],
         globPatterns: ["**/*.{js,css,html,ico,png,jpg,svg,woff2}"],
         runtimeCaching: [
