@@ -80,8 +80,11 @@ export const adminSetPhoneVerified = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { user_id: string; verified: boolean }) => input)
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Solo administradores");
+    const { data: canAccess } = await context.supabase.rpc("can_access_socio", {
+      _admin_id: context.userId,
+      _socio_id: data.user_id,
+    });
+    if (!canAccess) throw new Error("No tienes permiso para este socio");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { error } = await supabaseAdmin
       .from("profiles")

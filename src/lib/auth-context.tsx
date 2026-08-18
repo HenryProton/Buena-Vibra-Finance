@@ -18,6 +18,7 @@ type AuthState = {
   session: Session | null;
   profile: Profile | null;
   isAdmin: boolean;
+  isPrincipal: boolean;
   loading: boolean;
   refresh: () => Promise<void>;
 };
@@ -29,16 +30,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isPrincipal, setIsPrincipal] = useState(false);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   const loadProfile = async (uid: string) => {
-    const [{ data: p }, { data: roles }] = await Promise.all([
+    const [{ data: p }, { data: roles }, { data: principal }] = await Promise.all([
       supabase.from("profiles").select("*").eq("id", uid).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", uid),
+      supabase.rpc("is_principal", { _user_id: uid }),
     ]);
     setProfile(p as Profile | null);
     setIsAdmin(!!roles?.some((r) => r.role === "admin"));
+    setIsPrincipal(!!principal);
   };
 
   const refresh = async () => {
@@ -54,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setProfile(null);
         setIsAdmin(false);
+        setIsPrincipal(false);
       }
       if (event === "SIGNED_OUT") router.invalidate();
     });
@@ -70,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthCtx.Provider value={{ user, session, profile, isAdmin, loading, refresh }}>{children}</AuthCtx.Provider>
+    <AuthCtx.Provider value={{ user, session, profile, isAdmin, isPrincipal, loading, refresh }}>{children}</AuthCtx.Provider>
   );
 }
 

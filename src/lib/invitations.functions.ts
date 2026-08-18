@@ -21,8 +21,8 @@ export const adminCreateInvitation = createServerFn({ method: "POST" })
     return input;
   })
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Solo administradores");
+    const { data: isPrincipal } = await context.supabase.rpc("is_principal", { _user_id: context.userId });
+    if (!isPrincipal) throw new Error("Solo el administrador principal");
 
     const days = Math.max(1, Math.min(365, data.expires_in_days ?? 30));
     const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
@@ -58,8 +58,8 @@ export const adminCancelInvitation = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { id: string }) => input)
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Solo administradores");
+    const { data: isPrincipal } = await context.supabase.rpc("is_principal", { _user_id: context.userId });
+    if (!isPrincipal) throw new Error("Solo el administrador principal");
     const { error } = await (context.supabase as any).from("invitations").update({ status: "anulada" }).eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };

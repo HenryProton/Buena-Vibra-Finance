@@ -73,6 +73,16 @@ export const adminCreateSocio = createServerFn({ method: "POST" })
     } as never).eq("id", uid);
     if (upErr) throw new Error(upErr.message);
 
+    // A normal admin may create a member, but only receives access to that
+    // member. The principal is global and does not need an assignment row.
+    const { data: isPrincipal } = await context.supabase.rpc("is_principal", { _user_id: context.userId });
+    if (!isPrincipal) {
+      const { error: assignmentError } = await (supabaseAdmin as any)
+        .from("admin_socio_assignments")
+        .insert({ admin_id: context.userId, socio_id: uid, created_by: context.userId } as never);
+      if (assignmentError) throw new Error(assignmentError.message);
+    }
+
     return { id: uid, username, password: DEFAULT_PASSWORD, full_name: fullName, login_email: `${username}@${PLACEHOLDER_DOMAIN}` };
   });
 
@@ -80,8 +90,11 @@ export const adminGetSocioLogin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: { user_id: string }) => input)
   .handler(async ({ data, context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
-    if (!isAdmin) throw new Error("Solo administradores");
+    const { data: canAccess } = await context.supabase.rpc("can_access_socio", {
+      _admin_id: context.userId,
+      _socio_id: data.user_id,
+    });
+    if (!canAccess) throw new Error("No tienes permiso para este socio");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: res, error } = await supabaseAdmin.auth.admin.getUserById(data.user_id);
     if (error) throw new Error(error.message);

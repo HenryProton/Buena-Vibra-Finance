@@ -21,16 +21,17 @@ import { RecoveryRequestsPanel } from "./RecoveryRequestsPanel";
 
 export function AdminSocios() {
   const qc = useQueryClient();
-  const { user } = useAuth();
+  const { user, isPrincipal } = useAuth();
 
   const { data } = useQuery({
     queryKey: ["admin-profiles-roles"],
     queryFn: async () => {
-      const [{ data: profiles }, { data: roles }] = await Promise.all([
+      const [{ data: profiles }, { data: roles }, { data: assignments }] = await Promise.all([
         supabase.from("profiles").select("*").order("created_at", { ascending: false }),
         supabase.from("user_roles").select("*"),
+        (supabase as any).from("admin_socio_assignments").select("admin_id, socio_id"),
       ]);
-      return { profiles: profiles ?? [], roles: roles ?? [] };
+      return { profiles: profiles ?? [], roles: roles ?? [], assignments: assignments ?? [] };
     },
   });
 
@@ -57,6 +58,18 @@ export function AdminSocios() {
     onError: (e: Error) => toast.error(e.message),
   });
 
+  const toggleAssignment = useMutation({
+    mutationFn: async ({ adminId, socioId, assigned }: { adminId: string; socioId: string; assigned: boolean }) => {
+      const q = (supabase as any).from("admin_socio_assignments");
+      const { error } = assigned
+        ? await q.insert({ admin_id: adminId, socio_id: socioId, created_by: user?.id })
+        : await q.delete().eq("admin_id", adminId).eq("socio_id", socioId);
+      if (error && !String(error.message).includes("duplicate")) throw error;
+    },
+    onSuccess: () => { toast.success("Permisos actualizados"); qc.invalidateQueries({ queryKey: ["admin-profiles-roles"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
   const setPhoneVerified = useServerFn(adminSetPhoneVerified);
   const verifyPhone = useMutation({
     mutationFn: async (v: { user_id: string; verified: boolean }) => { await setPhoneVerified({ data: v }); },
@@ -65,11 +78,13 @@ export function AdminSocios() {
   });
 
   const isAdminOf = (uid: string) => data?.roles.some((r) => r.user_id === uid && r.role === "admin") ?? false;
+  const isAssigned = (adminId: string, socioId: string) => data?.assignments.some((a: any) => a.admin_id === adminId && a.socio_id === socioId) ?? false;
+  const admins = (data?.profiles ?? []).filter((p) => isAdminOf(p.id));
 
   return (
     <div className="space-y-4">
-      <RecoveryRequestsPanel />
-      <InvitationsPanel />
+      {isPrincipal && <RecoveryRequestsPanel />}
+      {isPrincipal && <InvitationsPanel />}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold">Socios</h2>
         <CrearSocioDialog onCreated={() => qc.invalidateQueries({ queryKey: ["admin-profiles-roles"] })} />
@@ -84,7 +99,7 @@ export function AdminSocios() {
                 <p className="font-semibold">
                   {p.full_name || "(Sin nombre)"}{" "}
                   <Badge className={admin ? "ml-1 bg-primary/20 text-primary" : "ml-1 bg-muted text-muted-foreground"}>
-                    {admin ? "Admin" : "Socio"}
+                  {admin ? "Admin" : "Socio"}
                   </Badge>
                 </p>
                 {(p as any).username && <p className="text-xs text-muted-foreground">Usuario: {(p as any).username}</p>}
@@ -104,11 +119,28 @@ export function AdminSocios() {
 
             <div className="flex items-center justify-between pt-2 border-t border-border">
               <div className="flex items-center gap-2">
-                <Switch checked={admin} disabled={isMe} onCheckedChange={(v) => toggleAdmin.mutate({ userId: p.id, makeAdmin: v })} />
+                <Switch checked={admin} disabled={isMe || !isPrincipal} onCheckedChange={(v) => toggleAdmin.mutate({ userId: p.id, makeAdmin: v })} />
                 <Label className="text-sm">Es administrador</Label>
               </div>
               {isMe && <p className="text-[10px] text-muted-foreground">(tú)</p>}
             </div>
+
+            {isPrincipal && !admin && admins.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-border">
+                <p className="text-sm font-medium">Administradores con acceso</p>
+                <div className="flex flex-wrap gap-x-4 gap-y-2">
+                  {admins.map((a) => (
+                    <label key={a.id} className="flex items-center gap-2 text-sm">
+                      <Switch
+                        checked={isAssigned(a.id, p.id)}
+                        onCheckedChange={(assigned) => toggleAssignment.mutate({ adminId: a.id, socioId: p.id, assigned })}
+                      />
+                      {a.full_name || "(Sin nombre)"}
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
               {p.status === "pendiente" && (

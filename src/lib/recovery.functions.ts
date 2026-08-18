@@ -254,11 +254,10 @@ export const verifyRecoveryCode = createServerFn({ method: "POST" })
 export const adminListRecoveryRequests = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data: isAdmin } = await context.supabase.rpc("has_role", {
+    const { data: isPrincipal } = await context.supabase.rpc("is_principal", {
       _user_id: context.userId,
-      _role: "admin",
     });
-    if (!isAdmin) throw new Error("Solo administradores");
+    if (!isPrincipal) throw new Error("Solo el administrador principal");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: rows, error } = await supabaseAdmin

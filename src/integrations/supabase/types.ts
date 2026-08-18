@@ -546,6 +546,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_access_socio: {
+        Args: { _admin_id: string; _socio_id: string }
+        Returns: boolean
+      }
       channel_balance: { Args: { _channel_id: string }; Returns: number }
       has_role: {
         Args: {
@@ -554,6 +558,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_principal: { Args: { _user_id: string }; Returns: boolean }
       ranking_aportes: {
         Args: never
         Returns: {

@@ -6,9 +6,8 @@ export const getChannelBalance = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ channelId: z.string().uuid() }).parse(input))
   .handler(async ({ data, context }) => {
-    const { data: isAdmin, error: roleErr } = await context.supabase.rpc("has_role", {
+    const { data: isAdmin, error: roleErr } = await context.supabase.rpc("is_principal", {
       _user_id: context.userId,
-      _role: "admin",
     });
     if (roleErr) throw new Error(roleErr.message);
     if (!isAdmin) throw new Error("Forbidden");
