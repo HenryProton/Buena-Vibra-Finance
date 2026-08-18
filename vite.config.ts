@@ -18,6 +18,12 @@ export default defineConfig({
         injectRegister: null,
         devOptions: { enabled: false },
         filename: "sw.js",
+        // IMPORTANT: this build uses TanStack Start + Nitro, whose real deployed
+        // static output is .output/public (NOT the vite-plugin-pwa default "dist").
+        // Without this, sw.js/manifest were written to an unused "dist" folder and
+        // never actually shipped, so the app silently had zero offline support in
+        // production (registration 404'd and was swallowed by a try/catch).
+        outDir: ".output/public",
         manifest: {
           name: "Buena Vibra Finance",
           short_name: "Buena Vibra",
@@ -33,6 +39,7 @@ export default defineConfig({
           ],
         },
         workbox: {
+          globDirectory: ".output/public",
           navigateFallback: "/",
           navigateFallbackDenylist: [/^\/~oauth/, /^\/api\//, /^\/_serverFn\//],
           globPatterns: ["**/*.{js,css,html,ico,png,jpg,svg,woff2}"],
