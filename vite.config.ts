@@ -4,7 +4,7 @@ import tsconfigPaths from "vite-tsconfig-paths";
 import { VitePWA } from "vite-plugin-pwa";
 
 const isGitHubPages = process.env.GITHUB_ACTIONS === "true";
-const base = isGitHubPages ? "/buena-vibra-cajita/" : "/";
+const base = isGitHubPages ? "/Buena-Vibra-Finance/" : "/";
 
 export default defineConfig({
   base,
