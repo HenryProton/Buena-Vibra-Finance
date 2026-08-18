@@ -1,28 +1,44 @@
-# Buena-Vibra Finance
+# Buena Vibra Finance
 
-Quiero cjadr ahorros llamada "Buena Vibra Finance"
+Aplicación independiente para gestionar ahorros, aportes y préstamos.
 
-La app necesita tener usuarios con características de administrador usuarios con características de Socio. Las tasa de interés por cada préstamo se coloca de manera individual al momento el administrador gestiona el préstamo los socios en su app De socios solo pueden ver todos los aportes que tienen hasta el momento todas las deudas que tienen hasta el momento detallando qué es capital y que son intereses .  La imagen que te dije es el logo de la app quiero que la app se vea en modo claro o en modo oscuro según la configuración del teléfono o según la selección que el usuario haga en su aplicación si tiene alguna pregunta hazla este es el momento
+## Arquitectura
 
-This project was built with [Lovable](https://lovable.dev).
+- Frontend: React + TypeScript + Vite/TanStack.
+- Backend: Supabase Auth + PostgreSQL + RLS.
+- PWA: Service Worker + Workbox.
+- Código fuente: GitHub.
+- Lovable: no es necesario para ejecutar, compilar ni editar el proyecto.
 
-**Live app**: https://buena-vibra-cajita.lovable.app
+## Seguridad
 
-## Build with Lovable
+Nunca guardes `.env`, claves `service_role`, tokens privados ni contraseñas en Git. El proyecto usa variables `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY` proporcionadas por el entorno de despliegue.
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/f0f934da-47c6-48f4-9cde-a2f051eeedbb).
+## Desarrollo local
 
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
-
-## Development
-
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
-
-```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+```bash
+npm install
 npm run dev
 ```
+
+Crea un `.env.local` fuera de Git:
+
+```text
+VITE_SUPABASE_URL=https://TU_PROYECTO.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=TU_CLAVE_PUBLICABLE
+```
+
+## Producción
+
+El frontend debe desplegarse en un hosting estático/PWA independiente. No se debe poner una clave `service_role` en el navegador.
+
+## Roles planificados
+
+- Administrador Principal: control total.
+- Administrador Adjunto: solo información autorizada por el Principal.
+- Socio: su información y No Socios que haya avalado.
+- No Socio: únicamente sus préstamos.
+
+## Offline-first
+
+Los datos previamente autorizados se conservan localmente para lectura offline. Las operaciones offline se identifican de forma única y se sincronizan al recuperar conexión para evitar duplicados. El servidor Supabase sigue siendo la autoridad final.
